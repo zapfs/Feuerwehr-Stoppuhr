@@ -437,6 +437,55 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
 .mt-8 { margin-top: 8px; }
 .hidden { display: none !important; }
 
+/* ── Global Testfragen status bar (parallel) ─────────── */
+#tf-status-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: var(--c-warn-light);
+  color: #1a1a1a;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+#tf-status-bar.hidden { display: none; }
+.tf-status-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tf-status-row.hidden { display: none; }
+.tf-status-label { font-size: 0.85rem; }
+.tf-status-time {
+  background: rgba(0,0,0,0.25);
+  color: #fff;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+.tf-status-row.exceeded .tf-status-time {
+  background: var(--c-danger);
+  animation: blink 0.5s step-start infinite;
+}
+#tf-status-goto {
+  margin-left: auto;
+  background: rgba(0,0,0,0.25);
+  color: #fff;
+  padding: 6px 12px;
+  min-height: 36px;
+  font-size: 0.85rem;
+}
+body.tf-active { padding-top: 48px; }
+
 /* ── Responsive ──────────────────────────────────────── */
 @media (min-width: 600px) {
   .screen-body { max-width: 560px; margin: 0 auto; padding: 16px; }
@@ -447,6 +496,21 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
 </style>
 </head>
 <body>
+
+<!-- ═══════════════════════════════════════════════════════
+     GLOBAL TESTFRAGEN STATUS BAR (parallel running timers)
+     ═══════════════════════════════════════════════════════ -->
+<div id="tf-status-bar" class="hidden">
+  <div class="tf-status-row hidden" id="tf-gf-status-row">
+    <span class="tf-status-label">📝 GF</span>
+    <span class="tf-status-time" id="tf-gf-status-time">10:00</span>
+  </div>
+  <div class="tf-status-row hidden" id="tf-mann-status-row">
+    <span class="tf-status-label">📝 Mannsch.</span>
+    <span class="tf-status-time" id="tf-mann-status-time">05:00</span>
+  </div>
+  <button id="tf-status-goto" class="btn-sm">→ Öffnen</button>
+</div>
 
 <!-- ═══════════════════════════════════════════════════════
      SCREEN 1: SETUP
@@ -621,13 +685,13 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
     <div class="card hidden" id="tf-mannschaft-card">
       <div class="card-title">Mannschaft – Testfragen (Stufe 6)</div>
       <div class="text-muted mt-4">Höchstzeit: 5 Minuten</div>
-      <div class="timer-display mt-8" id="tf-ma-display">05:00</div>
+      <div class="timer-display mt-8" id="tf-mann-display">05:00</div>
       <div class="timer-controls">
-        <button class="btn-start btn-sm" id="tf-ma-start">Start</button>
-        <button class="btn-stop btn-sm hidden" id="tf-ma-stop">Stop</button>
-        <button class="btn-reset btn-sm hidden" id="tf-ma-reset">Zurücksetzen</button>
+        <button class="btn-start btn-sm" id="tf-mann-start">Start</button>
+        <button class="btn-stop btn-sm hidden" id="tf-mann-stop">Stop</button>
+        <button class="btn-reset btn-sm hidden" id="tf-mann-reset">Zurücksetzen</button>
       </div>
-      <div class="knoten-result" id="tf-ma-result"></div>
+      <div class="knoten-result" id="tf-mann-result"></div>
     </div>
   </div>
   <div class="screen-footer">
@@ -811,11 +875,14 @@ const CONFIG = {
     III: { label: 'Variante III', baseEinsatz: 300, hasSaugleitung: true },
   },
   knotenDefs: [
-    { id: 'maschinist', label: 'Maschinist', sublabel: 'Zimmermannsschlag', max: 15 },
-    { id: 'melder',     label: 'Melder',     sublabel: 'Mastwurf gestochen', max: 15 },
-    { id: 'atrupp',     label: 'Angriffstrupp (ATF + ATM)', sublabel: 'Brustbund gegenseitig', max: 40 },
-    { id: 'wtrupp',     label: 'Wassertrupp (WTF + WTM)',   sublabel: 'Halbmastwurf', max: 15 },
-    { id: 'strupp',     label: 'Schlauchtrupp (STF + STM)', sublabel: 'Mastwurf gelegt', max: 15 },
+    { id: 'maschinist', label: 'Maschinist',                 sublabel: 'Zimmermannsschlag',           max: 15 },
+    { id: 'melder',     label: 'Melder',                     sublabel: 'Mastwurf gestochen',          max: 15 },
+    { id: 'atf',        label: 'Angriffstruppführer (ATF)',  sublabel: 'Brustbund mit Spierenstich',  max: 40 },
+    { id: 'atm',        label: 'Angriffstruppmann (ATM)',    sublabel: 'Brustbund mit Spierenstich',  max: 40 },
+    { id: 'wtf',        label: 'Wassertruppführer (WTF)',    sublabel: 'Halbmastwurf',                max: 15 },
+    { id: 'wtm',        label: 'Wassertruppmann (WTM)',      sublabel: 'Halbmastwurf',                max: 15 },
+    { id: 'stf',        label: 'Schlauchtruppführer (STF)',  sublabel: 'Mastwurf gelegt mit Halbschlag', max: 15 },
+    { id: 'stm',        label: 'Schlauchtruppmann (STM)',    sublabel: 'Mastwurf gelegt mit Halbschlag', max: 15 },
   ],
   saugleitungBase: 100,
   trockensaugMax: 300,
@@ -881,8 +948,7 @@ function computeSaugleitungMax(adj) {
 function colorState(elapsed, maxSeconds) {
   const r = elapsed / maxSeconds;
   if (r >= 1.0) return 'exceeded';
-  if (r >= 0.9) return 'danger';
-  if (r >= 0.75) return 'warning';
+  if (r >= 0.9) return 'warning';
   return 'ok';
 }
 
@@ -1011,7 +1077,6 @@ class TimerEngine {
 // ════════════════════════════════════════════════════════
 // NAV
 // ════════════════════════════════════════════════════════
-const SCREENS = ['setup','knoten','testfragen','einsatz','saugleitung','trockensaug','ergebnis'];
 const Nav = {
   current: 'setup',
   show(id) {
@@ -1019,6 +1084,7 @@ const Nav = {
     document.getElementById('screen-' + id).classList.add('active');
     this.current = id;
     window.scrollTo(0, 0);
+    TF.updateStatusBar();
   },
   next() {
     const order = this._getOrder();
@@ -1035,16 +1101,132 @@ const Nav = {
     if (idx > 0) {
       const prev = order[idx - 1];
       this.show(prev);
+      // Sync (not reset) screen state when returning
+      if (prev === 'testfragen' && Screens.testfragen.sync) Screens.testfragen.sync();
     }
   },
   _getOrder() {
-    const list = ['setup', 'knoten'];
+    const list = ['setup'];
     if (SESSION.stufe >= 2) list.push('testfragen');
+    list.push('knoten');
     list.push('einsatz');
     if (CONFIG.variants[SESSION.variante]?.hasSaugleitung) list.push('saugleitung');
     list.push('trockensaug');
     list.push('ergebnis');
     return list;
+  },
+};
+
+// ════════════════════════════════════════════════════════
+// TESTFRAGEN MANAGER – runs in parallel to other timers
+// ════════════════════════════════════════════════════════
+const TF = {
+  engines: { gf: null, mann: null },
+
+  init() {
+    const onTickGF = (el, st) => this._onTick('gf', el, st);
+    const onTickMann = (el, st) => this._onTick('mann', el, st);
+    this.engines.gf = new TimerEngine({
+      maxSeconds: CONFIG.testfragenGF,
+      onTick: onTickGF,
+      onAnnounce: () => {},
+    });
+    this.engines.mann = new TimerEngine({
+      maxSeconds: CONFIG.testfragenMann,
+      onTick: onTickMann,
+      onAnnounce: () => {},
+    });
+
+    document.getElementById('tf-status-goto').addEventListener('click', () => {
+      Nav.show('testfragen');
+    });
+  },
+
+  _onTick(which, el, st) {
+    const max = which === 'gf' ? CONFIG.testfragenGF : CONFIG.testfragenMann;
+
+    // Update local Testfragen screen display
+    const localDisp = document.getElementById(`tf-${which}-display`);
+    if (localDisp) {
+      const overtime = el > max;
+      localDisp.textContent = overtime ? '+' + fmtMST(el - max) : fmtMST(el);
+      localDisp.className = 'timer-display state-' + colorState(el, max);
+    }
+
+    // Update status bar
+    this.updateStatusBar();
+  },
+
+  updateStatusBar() {
+    const bar = document.getElementById('tf-status-bar');
+    if (!bar) return;
+    const gfActive   = this.engines.gf   && this.engines.gf.state   === 'running';
+    const mannActive = this.engines.mann && this.engines.mann.state === 'running';
+    const anyActive  = gfActive || mannActive;
+    const onTfScreen = Nav.current === 'testfragen';
+
+    if (anyActive && !onTfScreen) {
+      bar.classList.remove('hidden');
+      document.body.classList.add('tf-active');
+    } else {
+      bar.classList.add('hidden');
+      document.body.classList.remove('tf-active');
+    }
+
+    const gfRow   = document.getElementById('tf-gf-status-row');
+    const mannRow = document.getElementById('tf-mann-status-row');
+
+    if (gfActive) {
+      gfRow.classList.remove('hidden');
+      const el  = this.engines.gf.elapsed;
+      const max = CONFIG.testfragenGF;
+      const remaining = max - el;
+      const text = remaining >= 0 ? fmtMS(remaining) : '+' + fmtMS(-remaining);
+      document.getElementById('tf-gf-status-time').textContent = text;
+      gfRow.classList.toggle('exceeded', el >= max);
+    } else {
+      gfRow.classList.add('hidden');
+    }
+
+    if (mannActive) {
+      mannRow.classList.remove('hidden');
+      const el  = this.engines.mann.elapsed;
+      const max = CONFIG.testfragenMann;
+      const remaining = max - el;
+      const text = remaining >= 0 ? fmtMS(remaining) : '+' + fmtMS(-remaining);
+      document.getElementById('tf-mann-status-time').textContent = text;
+      mannRow.classList.toggle('exceeded', el >= max);
+    } else {
+      mannRow.classList.add('hidden');
+    }
+  },
+
+  start(which) {
+    Audio.ensureCtx();
+    this.engines[which].start();
+    this.updateStatusBar();
+  },
+
+  stop(which) {
+    this.engines[which].stop();
+    const el = this.engines[which].elapsed;
+    if (which === 'gf')   SESSION.results.testfragenGF   = el;
+    else                  SESSION.results.testfragenMann = el;
+    this.updateStatusBar();
+    return el;
+  },
+
+  reset(which) {
+    this.engines[which].reset();
+    if (which === 'gf')   SESSION.results.testfragenGF   = null;
+    else                  SESSION.results.testfragenMann = null;
+    this.updateStatusBar();
+  },
+
+  resetAll() {
+    this.engines.gf.reset();
+    this.engines.mann.reset();
+    this.updateStatusBar();
   },
 };
 
@@ -1118,7 +1300,6 @@ function makeSingleTimer({ displayId, startId, stopId, resetId, resultId, maxSec
   });
 
   btnReset.addEventListener('click', () => {
-    if (!confirm('Timer zurücksetzen?')) return;
     engine.reset();
     btnReset.classList.add('hidden');
     btnStart.classList.remove('hidden');
@@ -1205,8 +1386,8 @@ Screens.setup = {
       SESSION.adj         = adj;
       SESSION.einsatzMax  = computeEinsatzMax(variante, adj);
       SESSION.saugleitungMax = computeSaugleitungMax(adj);
+      TF.resetAll();
       Nav.next();
-      Screens.knoten.activate();
     });
   },
 };
@@ -1275,10 +1456,13 @@ Screens.knoten = (() => {
           eng.start();
           btnStart.classList.add('hidden');
           btnStop.classList.remove('hidden');
+          btnReset.classList.add('hidden');
+          resultEl.textContent = '';
         });
         btnStop.addEventListener('click', () => {
           eng.stop();
           btnStop.classList.add('hidden');
+          btnStart.classList.add('hidden');
           btnReset.classList.remove('hidden');
           const el = eng.elapsed;
           SESSION.results.knoten[def.id] = el;
@@ -1288,61 +1472,63 @@ Screens.knoten = (() => {
             : `<span class="result-fail">✗ ${fmtMST(el)} (max ${def.max} s)</span>`;
         });
         btnReset.addEventListener('click', () => {
-          if (!confirm('Timer zurücksetzen?')) return;
           eng.reset();
           display.textContent = '00:00.0';
           display.className = 'timer-display';
           btnReset.classList.add('hidden');
+          btnStop.classList.add('hidden');
           btnStart.classList.remove('hidden');
           resultEl.textContent = '';
           delete SESSION.results.knoten[def.id];
         });
+
+        // Restore previously stopped time (when navigating back)
+        const savedElapsed = SESSION.results.knoten[def.id];
+        if (savedElapsed != null) {
+          display.textContent = fmtMST(savedElapsed);
+          display.className = 'timer-display state-' + colorState(savedElapsed, def.max);
+          btnStart.classList.add('hidden');
+          btnStop.classList.add('hidden');
+          btnReset.classList.remove('hidden');
+          const ok = savedElapsed <= def.max;
+          resultEl.innerHTML = ok
+            ? `<span class="result-ok">✓ ${fmtMST(savedElapsed)}</span>`
+            : `<span class="result-fail">✗ ${fmtMST(savedElapsed)} (max ${def.max} s)</span>`;
+        }
       }
     },
   };
 })();
 
-// ── TESTFRAGEN ──────────────────────────────────────────
+// ── TESTFRAGEN (delegates to global TF manager – runs in parallel) ──
 Screens.testfragen = (() => {
-  let gfTimer = null, maTimer = null;
 
-  function makeTimer(displayId, startId, stopId, resetId, resultId, maxSec) {
+  function wireTimer(which, displayId, startId, stopId, resetId, resultId, maxSec) {
     const display  = document.getElementById(displayId);
     const btnStart = document.getElementById(startId);
     const btnStop  = document.getElementById(stopId);
     const btnReset = document.getElementById(resetId);
     const resultEl = document.getElementById(resultId);
 
-    const eng = new TimerEngine({
-      maxSeconds: maxSec,
-      onTick(el) {
-        display.textContent = fmtMST(el);
-        display.className = 'timer-display state-' + colorState(el, maxSec);
-      },
-      onAnnounce() {},
-    });
-
     btnStart.addEventListener('click', () => {
-      Audio.ensureCtx();
-      eng.start();
+      TF.start(which);
       btnStart.classList.add('hidden');
       btnStop.classList.remove('hidden');
+      btnReset.classList.add('hidden');
+      resultEl.textContent = '';
     });
     btnStop.addEventListener('click', () => {
-      eng.stop();
+      const el = TF.stop(which);
       btnStop.classList.add('hidden');
       btnStart.classList.add('hidden');
       btnReset.classList.remove('hidden');
-      const el = eng.elapsed;
       const ok = el <= maxSec;
       resultEl.innerHTML = ok
         ? `<span class="result-ok">✓ ${fmtMST(el)}</span>`
         : `<span class="result-fail">✗ ${fmtMST(el)} (max ${fmtMS(maxSec)})</span>`;
-      return el;
     });
     btnReset.addEventListener('click', () => {
-      if (!confirm('Timer zurücksetzen?')) return;
-      eng.reset();
+      TF.reset(which);
       display.textContent = '00:00.0';
       display.className = 'timer-display';
       btnStart.classList.remove('hidden');
@@ -1350,45 +1536,92 @@ Screens.testfragen = (() => {
       btnReset.classList.add('hidden');
       resultEl.textContent = '';
     });
-    return { eng, getElapsed: () => eng.state === 'stopped' ? eng.elapsed : null };
+  }
+
+  function syncButtonsFromState() {
+    // GF
+    const gfState = TF.engines.gf.state;
+    const gfStart  = document.getElementById('tf-gf-start');
+    const gfStop   = document.getElementById('tf-gf-stop');
+    const gfReset  = document.getElementById('tf-gf-reset');
+    const gfResult = document.getElementById('tf-gf-result');
+    const gfDisp   = document.getElementById('tf-gf-display');
+    if (gfState === 'running') {
+      gfStart.classList.add('hidden');
+      gfStop.classList.remove('hidden');
+      gfReset.classList.add('hidden');
+      gfResult.textContent = '';
+    } else if (gfState === 'stopped') {
+      gfStart.classList.add('hidden');
+      gfStop.classList.add('hidden');
+      gfReset.classList.remove('hidden');
+      const el = TF.engines.gf.elapsed;
+      const ok = el <= CONFIG.testfragenGF;
+      gfResult.innerHTML = ok
+        ? `<span class="result-ok">✓ ${fmtMST(el)}</span>`
+        : `<span class="result-fail">✗ ${fmtMST(el)} (max ${fmtMS(CONFIG.testfragenGF)})</span>`;
+      const overtime = el > CONFIG.testfragenGF;
+      gfDisp.textContent = overtime ? '+' + fmtMST(el - CONFIG.testfragenGF) : fmtMST(el);
+      gfDisp.className = 'timer-display state-' + colorState(el, CONFIG.testfragenGF);
+    } else {
+      gfStart.classList.remove('hidden');
+      gfStop.classList.add('hidden');
+      gfReset.classList.add('hidden');
+      gfResult.textContent = '';
+      gfDisp.textContent = '00:00.0';
+      gfDisp.className = 'timer-display';
+    }
+
+    // Mannschaft
+    if (SESSION.stufe < 6) return;
+    const maState = TF.engines.mann.state;
+    const maStart  = document.getElementById('tf-mann-start');
+    const maStop   = document.getElementById('tf-mann-stop');
+    const maReset  = document.getElementById('tf-mann-reset');
+    const maResult = document.getElementById('tf-mann-result');
+    const maDisp   = document.getElementById('tf-mann-display');
+    if (maState === 'running') {
+      maStart.classList.add('hidden');
+      maStop.classList.remove('hidden');
+      maReset.classList.add('hidden');
+      maResult.textContent = '';
+    } else if (maState === 'stopped') {
+      maStart.classList.add('hidden');
+      maStop.classList.add('hidden');
+      maReset.classList.remove('hidden');
+      const el = TF.engines.mann.elapsed;
+      const ok = el <= CONFIG.testfragenMann;
+      maResult.innerHTML = ok
+        ? `<span class="result-ok">✓ ${fmtMST(el)}</span>`
+        : `<span class="result-fail">✗ ${fmtMST(el)} (max ${fmtMS(CONFIG.testfragenMann)})</span>`;
+      const overtime = el > CONFIG.testfragenMann;
+      maDisp.textContent = overtime ? '+' + fmtMST(el - CONFIG.testfragenMann) : fmtMST(el);
+      maDisp.className = 'timer-display state-' + colorState(el, CONFIG.testfragenMann);
+    } else {
+      maStart.classList.remove('hidden');
+      maStop.classList.add('hidden');
+      maReset.classList.add('hidden');
+      maResult.textContent = '';
+      maDisp.textContent = '00:00.0';
+      maDisp.className = 'timer-display';
+    }
   }
 
   return {
     init() {
       document.getElementById('btn-tf-back').addEventListener('click', () => Nav.back());
       document.getElementById('btn-tf-weiter').addEventListener('click', () => Nav.next());
-      gfTimer = makeTimer('tf-gf-display','tf-gf-start','tf-gf-stop','tf-gf-reset','tf-gf-result', CONFIG.testfragenGF);
-      maTimer = makeTimer('tf-ma-display','tf-ma-start','tf-ma-stop','tf-ma-reset','tf-ma-result', CONFIG.testfragenMann);
-
-      // Wire up result saving via stop buttons
-      document.getElementById('tf-gf-stop').addEventListener('click', () => {
-        setTimeout(() => { SESSION.results.testfragenGF = gfTimer.getElapsed(); }, 50);
-      }, true);
-      document.getElementById('tf-ma-stop').addEventListener('click', () => {
-        setTimeout(() => { SESSION.results.testfragenMann = maTimer.getElapsed(); }, 50);
-      }, true);
+      wireTimer('gf',   'tf-gf-display', 'tf-gf-start', 'tf-gf-stop', 'tf-gf-reset', 'tf-gf-result', CONFIG.testfragenGF);
+      wireTimer('mann', 'tf-mann-display', 'tf-mann-start', 'tf-mann-stop', 'tf-mann-reset', 'tf-mann-result', CONFIG.testfragenMann);
     },
     activate() {
       document.getElementById('tf-variant-badge').textContent =
         CONFIG.variants[SESSION.variante].label + ' · Stufe ' + SESSION.stufe;
       const mannCard = document.getElementById('tf-mannschaft-card');
       mannCard.classList.toggle('hidden', SESSION.stufe < 6);
-      // Reset timers
-      gfTimer.eng.reset();
-      document.getElementById('tf-gf-display').textContent = '00:00.0';
-      document.getElementById('tf-gf-display').className = 'timer-display';
-      document.getElementById('tf-gf-start').classList.remove('hidden');
-      document.getElementById('tf-gf-stop').classList.add('hidden');
-      document.getElementById('tf-gf-reset').classList.add('hidden');
-      document.getElementById('tf-gf-result').textContent = '';
-      maTimer.eng.reset();
-      document.getElementById('tf-ma-display').textContent = '00:00.0';
-      document.getElementById('tf-ma-display').className = 'timer-display';
-      document.getElementById('tf-ma-start').classList.remove('hidden');
-      document.getElementById('tf-ma-stop').classList.add('hidden');
-      document.getElementById('tf-ma-reset').classList.add('hidden');
-      document.getElementById('tf-ma-result').textContent = '';
+      syncButtonsFromState();
     },
+    sync: syncButtonsFromState,
   };
 })();
 
@@ -1415,7 +1648,6 @@ Screens.einsatz = (() => {
         SESSION.results.einsatz = eng.elapsed;
       });
       document.getElementById('einsatz-reset').addEventListener('click', () => {
-        if (!confirm('Einsatzübung zurücksetzen?')) return;
         resetEngine();
         SESSION.results.einsatz = null;
       });
@@ -1471,6 +1703,17 @@ Screens.einsatz = (() => {
       document.getElementById('einsatz-start').classList.remove('hidden');
       document.getElementById('einsatz-stop').classList.add('hidden');
       document.getElementById('einsatz-reset').classList.add('hidden');
+
+      // Restore previously stopped time (when navigating back)
+      const saved = SESSION.results.einsatz;
+      if (saved != null) {
+        const overtime = saved > max;
+        display.textContent = overtime ? '+' + fmtMST(saved - max) : fmtMST(saved);
+        display.className = 'timer-display state-' + colorState(saved, max);
+        document.getElementById('einsatz-start').classList.add('hidden');
+        document.getElementById('einsatz-stop').classList.add('hidden');
+        document.getElementById('einsatz-reset').classList.remove('hidden');
+      }
     },
   };
 
@@ -1513,7 +1756,6 @@ Screens.saugleitung = (() => {
         SESSION.results.saugleitung = eng.elapsed;
       });
       document.getElementById('saug-reset').addEventListener('click', () => {
-        if (!confirm('Saugleitung-Timer zurücksetzen?')) return;
         resetSaug();
         SESSION.results.saugleitung = null;
       });
@@ -1552,6 +1794,17 @@ Screens.saugleitung = (() => {
       document.getElementById('saug-start').classList.remove('hidden');
       document.getElementById('saug-stop').classList.add('hidden');
       document.getElementById('saug-reset').classList.add('hidden');
+
+      // Restore previously stopped time (when navigating back)
+      const saved = SESSION.results.saugleitung;
+      if (saved != null) {
+        const overtime = saved > max;
+        display.textContent = overtime ? '+' + fmtMST(saved - max) : fmtMST(saved);
+        display.className = 'timer-display state-' + colorState(saved, max);
+        document.getElementById('saug-start').classList.add('hidden');
+        document.getElementById('saug-stop').classList.add('hidden');
+        document.getElementById('saug-reset').classList.remove('hidden');
+      }
     },
   };
 
@@ -1599,7 +1852,6 @@ Screens.trockensaug = (() => {
       });
 
       document.getElementById('ts-main-reset').addEventListener('click', () => {
-        if (!confirm('Trockensaugprobe zurücksetzen?')) return;
         resetAll();
         SESSION.results.trockensaug = { mainElapsed: null, versuche: 0, haltezeitBestanden: false };
       });
@@ -1704,6 +1956,7 @@ Screens.ergebnis = {
   init() {
     document.getElementById('btn-neue-pruefung').addEventListener('click', () => {
       SESSION = buildSession();
+      TF.resetAll();
       Nav.show('setup');
     });
   },
@@ -1812,6 +2065,7 @@ Screens.ergebnis = {
 // BOOT
 // ════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
+  TF.init();
   Screens.setup.init();
   Screens.knoten.init();
   Screens.testfragen.init();

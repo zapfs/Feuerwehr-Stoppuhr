@@ -1079,32 +1079,46 @@ class TimerEngine {
 // ════════════════════════════════════════════════════════
 const Nav = {
   current: 'setup',
-  show(id) {
+  history: [],
+
+  show(id, { pushHistory = true } = {}) {
+    if (pushHistory && this.current && this.current !== id) {
+      this.history.push(this.current);
+      if (this.history.length > 30) this.history.shift();
+    }
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById('screen-' + id).classList.add('active');
     this.current = id;
     window.scrollTo(0, 0);
     TF.updateStatusBar();
+    if (id === 'testfragen' && Screens.testfragen.sync) Screens.testfragen.sync();
   },
+
   next() {
     const order = this._getOrder();
     const idx   = order.indexOf(this.current);
     if (idx >= 0 && idx < order.length - 1) {
       const next = order[idx + 1];
       this.show(next);
-      Screens[next] && Screens[next].activate();
+      Screens[next] && Screens[next].activate && Screens[next].activate();
     }
   },
+
   back() {
-    const order = this._getOrder();
-    const idx   = order.indexOf(this.current);
-    if (idx > 0) {
-      const prev = order[idx - 1];
-      this.show(prev);
-      // Sync (not reset) screen state when returning
-      if (prev === 'testfragen' && Screens.testfragen.sync) Screens.testfragen.sync();
+    if (this.history.length > 0) {
+      const prev = this.history.pop();
+      this.show(prev, { pushHistory: false });
+    } else {
+      const order = this._getOrder();
+      const idx   = order.indexOf(this.current);
+      if (idx > 0) this.show(order[idx - 1], { pushHistory: false });
     }
   },
+
+  resetHistory() {
+    this.history = [];
+  },
+
   _getOrder() {
     const list = ['setup'];
     if (SESSION.stufe >= 2) list.push('testfragen');
@@ -1300,6 +1314,7 @@ function makeSingleTimer({ displayId, startId, stopId, resetId, resultId, maxSec
   });
 
   btnReset.addEventListener('click', () => {
+    if (!confirm('Diese Zeit wirklich zurücksetzen?')) return;
     engine.reset();
     btnReset.classList.add('hidden');
     btnStart.classList.remove('hidden');
@@ -1380,13 +1395,34 @@ Screens.setup = {
       const variante = document.querySelector('input[name=variante]:checked').value;
       const stufe    = parseInt(document.querySelector('input[name=stufe]:checked').value);
       const adj      = readAdj();
-      SESSION = buildSession();
-      SESSION.variante    = variante;
-      SESSION.stufe       = stufe;
-      SESSION.adj         = adj;
-      SESSION.einsatzMax  = computeEinsatzMax(variante, adj);
+
+      const hasResults =
+        SESSION.variante != null && (
+          Object.keys(SESSION.results.knoten).length > 0 ||
+          SESSION.results.einsatz != null ||
+          SESSION.results.saugleitung != null ||
+          SESSION.results.testfragenGF != null ||
+          SESSION.results.testfragenMann != null ||
+          SESSION.results.trockensaug.mainElapsed != null
+        );
+      const coreChanged = SESSION.variante != null &&
+        (SESSION.variante !== variante || SESSION.stufe !== stufe);
+
+      if (hasResults && coreChanged) {
+        if (!confirm('Variante oder Stufe wurde geändert. Alle bisher gestoppten Zeiten werden gelöscht. Fortfahren?')) return;
+      }
+
+      if (SESSION.variante == null || coreChanged) {
+        // Fresh start or hard change
+        SESSION = buildSession();
+        TF.resetAll();
+      }
+
+      SESSION.variante       = variante;
+      SESSION.stufe          = stufe;
+      SESSION.adj            = adj;
+      SESSION.einsatzMax     = computeEinsatzMax(variante, adj);
       SESSION.saugleitungMax = computeSaugleitungMax(adj);
-      TF.resetAll();
       Nav.next();
     });
   },
@@ -1472,6 +1508,7 @@ Screens.knoten = (() => {
             : `<span class="result-fail">✗ ${fmtMST(el)} (max ${def.max} s)</span>`;
         });
         btnReset.addEventListener('click', () => {
+          if (!confirm(`Zeit für ${def.label} wirklich zurücksetzen?`)) return;
           eng.reset();
           display.textContent = '00:00.0';
           display.className = 'timer-display';
@@ -1528,6 +1565,8 @@ Screens.testfragen = (() => {
         : `<span class="result-fail">✗ ${fmtMST(el)} (max ${fmtMS(maxSec)})</span>`;
     });
     btnReset.addEventListener('click', () => {
+      const label = which === 'gf' ? 'Gruppenführer' : 'Mannschaft';
+      if (!confirm(`Testfragen-Zeit (${label}) wirklich zurücksetzen?`)) return;
       TF.reset(which);
       display.textContent = '00:00.0';
       display.className = 'timer-display';
@@ -1648,6 +1687,7 @@ Screens.einsatz = (() => {
         SESSION.results.einsatz = eng.elapsed;
       });
       document.getElementById('einsatz-reset').addEventListener('click', () => {
+        if (!confirm('Einsatzübungs-Zeit wirklich zurücksetzen?')) return;
         resetEngine();
         SESSION.results.einsatz = null;
       });
@@ -1756,6 +1796,7 @@ Screens.saugleitung = (() => {
         SESSION.results.saugleitung = eng.elapsed;
       });
       document.getElementById('saug-reset').addEventListener('click', () => {
+        if (!confirm('Saugleitung-Zeit wirklich zurücksetzen?')) return;
         resetSaug();
         SESSION.results.saugleitung = null;
       });
@@ -1852,6 +1893,7 @@ Screens.trockensaug = (() => {
       });
 
       document.getElementById('ts-main-reset').addEventListener('click', () => {
+        if (!confirm('Trockensaugprobe wirklich zurücksetzen?')) return;
         resetAll();
         SESSION.results.trockensaug = { mainElapsed: null, versuche: 0, haltezeitBestanden: false };
       });

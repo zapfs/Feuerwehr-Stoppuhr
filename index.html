@@ -1,0 +1,1826 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#1a1a1a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>Feuerwehr-Stoppuhr</title>
+<style>
+:root {
+  --c-ok:        #2e7d32;
+  --c-ok-light:  #43a047;
+  --c-warn:      #f57f17;
+  --c-warn-light:#fbc02d;
+  --c-danger:    #b71c1c;
+  --c-danger-light:#c62828;
+  --c-bg:        #1a1a1a;
+  --c-surface:   #242424;
+  --c-surface2:  #2e2e2e;
+  --c-border:    #3a3a3a;
+  --c-text:      #f0f0f0;
+  --c-muted:     #999;
+  --c-accent:    #e53935;
+  --c-btn:       #3a3a3a;
+  --c-btn-hover: #4a4a4a;
+  --radius:      10px;
+  --timer-size:  clamp(2.8rem, 11vw, 5.5rem);
+  --sub-timer-size: clamp(2rem, 8vw, 4rem);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--c-bg);
+  color: var(--c-text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
+}
+
+/* ── Screen management ──────────────────────────────── */
+.screen { display: none; flex-direction: column; min-height: 100dvh; min-height: 100vh; }
+.screen.active { display: flex; }
+
+/* ── Layout helpers ─────────────────────────────────── */
+.screen-header {
+  background: var(--c-surface);
+  border-bottom: 1px solid var(--c-border);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.screen-header h1 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  flex: 1;
+}
+.screen-header .badge-variant {
+  background: var(--c-accent);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 20px;
+}
+.screen-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.screen-footer {
+  padding: 12px;
+  background: var(--c-surface);
+  border-top: 1px solid var(--c-border);
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* ── Cards ──────────────────────────────────────────── */
+.card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+.card-title {
+  font-size: 0.85rem;
+  color: var(--c-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+}
+
+/* ── Buttons ─────────────────────────────────────────── */
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 14px 20px;
+  min-height: 52px;
+  min-width: 44px;
+  transition: background 0.15s, opacity 0.15s;
+  -webkit-appearance: none;
+}
+button:active { opacity: 0.75; }
+button:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.btn-primary { background: var(--c-accent); color: #fff; flex: 1; }
+.btn-secondary { background: var(--c-btn); color: var(--c-text); flex: 1; }
+.btn-secondary:hover { background: var(--c-btn-hover); }
+.btn-back { background: transparent; color: var(--c-muted); font-size: 1.5rem; padding: 8px; min-height: 44px; min-width: 44px; }
+.btn-start { background: var(--c-ok); color: #fff; }
+.btn-stop  { background: var(--c-danger); color: #fff; }
+.btn-reset { background: var(--c-warn); color: #1a1a1a; font-weight: 700; }
+.btn-full  { width: 100%; }
+.btn-sm { font-size: 0.9rem; padding: 10px 14px; min-height: 44px; }
+
+/* ── Timer display ───────────────────────────────────── */
+.timer-display {
+  font-family: 'Courier New', 'Courier', monospace;
+  font-size: var(--timer-size);
+  font-weight: 700;
+  text-align: center;
+  padding: 12px 8px;
+  border-radius: var(--radius);
+  letter-spacing: 0.02em;
+  background: var(--c-surface2);
+  transition: background 0.3s ease;
+  line-height: 1.1;
+  word-break: break-all;
+}
+.timer-display.state-ok      { background: var(--c-ok); color: #fff; }
+.timer-display.state-warning { background: var(--c-warn); color: #1a1a1a; }
+.timer-display.state-danger  { background: var(--c-danger); color: #fff; }
+.timer-display.state-exceeded {
+  background: var(--c-danger);
+  color: #fff;
+  animation: blink 0.5s step-start infinite;
+}
+@keyframes blink {
+  0%, 100% { background: var(--c-danger); }
+  50%       { background: #7f0000; }
+}
+
+.timer-sub {
+  font-family: 'Courier New', 'Courier', monospace;
+  font-size: var(--sub-timer-size);
+  font-weight: 700;
+  text-align: center;
+  padding: 10px 8px;
+  border-radius: var(--radius);
+  letter-spacing: 0.02em;
+  background: var(--c-surface2);
+  transition: background 0.3s ease;
+}
+.timer-sub.state-ok      { background: var(--c-ok); color: #fff; }
+.timer-sub.state-warning { background: var(--c-warn); color: #1a1a1a; }
+.timer-sub.state-danger  { background: var(--c-danger); color: #fff; }
+.timer-sub.state-exceeded {
+  background: var(--c-danger);
+  color: #fff;
+  animation: blink 0.5s step-start infinite;
+}
+
+.timer-max-label {
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--c-muted);
+  margin-top: 4px;
+}
+
+/* ── Timer controls row ──────────────────────────────── */
+.timer-controls {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.timer-controls button { flex: 1; }
+
+/* ── Knoten cards ────────────────────────────────────── */
+.knoten-card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+.knoten-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+.knoten-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  flex: 1;
+}
+.badge {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: var(--c-surface2);
+  color: var(--c-muted);
+  white-space: nowrap;
+}
+.badge-ok      { background: var(--c-ok);     color: #fff; }
+.badge-fail    { background: var(--c-danger);  color: #fff; }
+.badge-warn    { background: var(--c-warn);    color: #1a1a1a; }
+.knoten-result {
+  font-size: 0.85rem;
+  text-align: right;
+  margin-top: 6px;
+  min-height: 1.2em;
+}
+
+/* ── Announcement log ────────────────────────────────── */
+.announce-log {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.announce-log li {
+  background: var(--c-surface2);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  color: var(--c-muted);
+}
+.announce-log li.new { color: var(--c-text); background: var(--c-warn); color: #1a1a1a; }
+
+/* ── Setup screen specific ───────────────────────────── */
+.setup-title {
+  text-align: center;
+  padding: 20px 16px 8px;
+}
+.setup-title h1 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--c-accent);
+}
+.setup-title p {
+  font-size: 0.85rem;
+  color: var(--c-muted);
+  margin-top: 4px;
+}
+
+.radio-group {
+  display: grid;
+  gap: 8px;
+}
+.radio-group label {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: var(--c-surface2);
+  border: 2px solid var(--c-border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.radio-group label:has(input:checked) {
+  border-color: var(--c-accent);
+  background: rgba(229, 57, 53, 0.1);
+}
+.radio-group input[type=radio] {
+  accent-color: var(--c-accent);
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.radio-group .radio-title {
+  font-weight: 700;
+  font-size: 1rem;
+}
+.radio-group .radio-desc {
+  font-size: 0.82rem;
+  color: var(--c-muted);
+  margin-top: 2px;
+}
+
+.stufe-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+}
+.stufe-grid label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 4px;
+  background: var(--c-surface2);
+  border: 2px solid var(--c-border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.stufe-grid label:has(input:checked) {
+  border-color: var(--c-accent);
+  background: rgba(229, 57, 53, 0.1);
+}
+.stufe-grid input[type=radio] {
+  accent-color: var(--c-accent);
+  margin-bottom: 4px;
+}
+
+.adj-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--c-border);
+  gap: 12px;
+}
+.adj-row:last-child { border-bottom: none; }
+.adj-label { font-size: 0.9rem; flex: 1; }
+.adj-sublabel { font-size: 0.78rem; color: var(--c-muted); }
+.adj-control { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.adj-control input[type=number] {
+  width: 56px;
+  padding: 8px;
+  background: var(--c-surface2);
+  border: 1px solid var(--c-border);
+  border-radius: 6px;
+  color: var(--c-text);
+  font-size: 1rem;
+  text-align: center;
+}
+.adj-control input[type=checkbox] {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--c-accent);
+  cursor: pointer;
+}
+
+.computed-times {
+  background: rgba(229, 57, 53, 0.08);
+  border: 1px solid rgba(229, 57, 53, 0.3);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+.computed-times h3 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--c-muted);
+  margin-bottom: 8px;
+}
+.computed-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 0.92rem;
+}
+.computed-row span:last-child {
+  font-weight: 700;
+  color: var(--c-accent);
+}
+
+/* ── Ergebnis screen ─────────────────────────────────── */
+.result-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.result-table th {
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--c-muted);
+  border-bottom: 1px solid var(--c-border);
+}
+.result-table td {
+  padding: 10px 10px;
+  border-bottom: 1px solid var(--c-border);
+  vertical-align: middle;
+}
+.result-table tr:last-child td { border-bottom: none; }
+.result-ok   { color: var(--c-ok-light); font-weight: 700; }
+.result-fail { color: #ef5350; font-weight: 700; }
+.result-skip { color: var(--c-muted); }
+
+.gesamtergebnis {
+  text-align: center;
+  padding: 20px;
+  border-radius: var(--radius);
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 8px 0;
+}
+.gesamtergebnis.bestanden  { background: var(--c-ok);     color: #fff; }
+.gesamtergebnis.nicht-bestanden { background: var(--c-danger); color: #fff; }
+
+/* ── Trockensaugprobe ────────────────────────────────── */
+.versuch-badge {
+  display: inline-block;
+  background: var(--c-surface2);
+  color: var(--c-muted);
+  border-radius: 20px;
+  padding: 3px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+/* ── Misc ────────────────────────────────────────────── */
+.divider {
+  border: none;
+  border-top: 1px solid var(--c-border);
+  margin: 4px 0;
+}
+.text-muted { color: var(--c-muted); font-size: 0.85rem; }
+.text-center { text-align: center; }
+.mt-4 { margin-top: 4px; }
+.mt-8 { margin-top: 8px; }
+.hidden { display: none !important; }
+
+/* ── Responsive ──────────────────────────────────────── */
+@media (min-width: 600px) {
+  .screen-body { max-width: 560px; margin: 0 auto; padding: 16px; }
+  .screen-footer { justify-content: center; }
+  .screen-footer .btn-primary, .screen-footer .btn-secondary { max-width: 240px; }
+  .setup-title h1 { font-size: 1.7rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+     SCREEN 1: SETUP
+     ═══════════════════════════════════════════════════════ -->
+<div class="screen active" id="screen-setup">
+  <div class="screen-body">
+    <div class="setup-title">
+      <h1>🔴 Feuerwehr-Stoppuhr</h1>
+      <p>Leistungsprüfung „Die Gruppe im Löscheinsatz" – Bayern</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Variante</div>
+      <div class="radio-group" id="variante-group">
+        <label>
+          <input type="radio" name="variante" value="I">
+          <div>
+            <div class="radio-title">Variante I</div>
+            <div class="radio-desc">Außenangriff – Wasserentnahme aus Hydranten</div>
+          </div>
+        </label>
+        <label>
+          <input type="radio" name="variante" value="II">
+          <div>
+            <div class="radio-title">Variante II</div>
+            <div class="radio-desc">Außenangriff – Wasserentnahme mit Saugleitung</div>
+          </div>
+        </label>
+        <label>
+          <input type="radio" name="variante" value="III">
+          <div>
+            <div class="radio-title">Variante III</div>
+            <div class="radio-desc">Innenangriff – Wasserentnahme aus Hydranten</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Leistungsstufe</div>
+      <div class="stufe-grid" id="stufe-group">
+        <label><input type="radio" name="stufe" value="1">Stufe 1</label>
+        <label><input type="radio" name="stufe" value="2">Stufe 2</label>
+        <label><input type="radio" name="stufe" value="3">Stufe 3</label>
+        <label><input type="radio" name="stufe" value="4">Stufe 4</label>
+        <label><input type="radio" name="stufe" value="5">Stufe 5</label>
+        <label><input type="radio" name="stufe" value="6">Stufe 6</label>
+      </div>
+    </div>
+
+    <div class="card" id="adj-card">
+      <div class="card-title">Zeitanpassungen</div>
+
+      <!-- Var I + III -->
+      <div id="adj-blaengen" class="adj-row hidden">
+        <div class="adj-label">
+          Zusätzliche B-Leitungs-Längen
+          <div class="adj-sublabel">über 1 Länge hinaus, je +10 s</div>
+        </div>
+        <div class="adj-control">
+          <input type="number" id="input-blaengen" value="0" min="0" max="20">
+        </div>
+      </div>
+
+      <!-- Var II only -->
+      <div id="adj-saugschlauch" class="adj-row hidden">
+        <div class="adj-label">
+          Abweichende Saugschlauchanzahl
+          <div class="adj-sublabel">von 4 abweichend, je ±10 s</div>
+        </div>
+        <div class="adj-control">
+          <select id="input-saugschlauch-sign" style="background:var(--c-surface2);color:var(--c-text);border:1px solid var(--c-border);border-radius:6px;padding:8px;font-size:1rem;">
+            <option value="1">+</option>
+            <option value="-1">−</option>
+          </select>
+          <input type="number" id="input-saugschlauch-count" value="0" min="0" max="10">
+        </div>
+      </div>
+      <div id="adj-halteleine" class="adj-row hidden">
+        <div class="adj-label">
+          Ohne Halte-/Ventilleine und Saugkorb
+          <div class="adj-sublabel">−20 s</div>
+        </div>
+        <div class="adj-control">
+          <input type="checkbox" id="input-ohnehalteleine">
+        </div>
+      </div>
+      <div id="adj-bsaugl-ii" class="adj-row hidden">
+        <div class="adj-label">
+          B-Saugleitung (KLF)
+          <div class="adj-sublabel">−10 s</div>
+        </div>
+        <div class="adj-control">
+          <input type="checkbox" id="input-bsaugl-ii">
+        </div>
+      </div>
+
+      <!-- Var I + III -->
+      <div id="adj-bsaugl-i" class="adj-row hidden">
+        <div class="adj-label">
+          B-Saugleitung (KLF)
+          <div class="adj-sublabel">Saugleitung kuppeln −10 s</div>
+        </div>
+        <div class="adj-control">
+          <input type="checkbox" id="input-bsaugl-i">
+        </div>
+      </div>
+
+      <!-- All variants -->
+      <div id="adj-dachverlastung" class="adj-row hidden">
+        <div class="adj-label">
+          Saugschläuche auf Fahrzeugdach
+          <div class="adj-sublabel" id="adj-dach-sublabel">+60 s</div>
+        </div>
+        <div class="adj-control">
+          <input type="checkbox" id="input-dachverlastung">
+        </div>
+      </div>
+    </div>
+
+    <div class="computed-times" id="computed-times">
+      <h3>Berechnete Höchstzeiten</h3>
+      <div class="computed-row"><span>Einsatzübung</span><span id="ct-einsatz">–</span></div>
+      <div class="computed-row" id="ct-saugl-row"><span>Saugleitung kuppeln</span><span id="ct-saugl">–</span></div>
+      <div class="computed-row"><span>Trockensaugprobe</span><span>max. 300 s</span></div>
+    </div>
+  </div>
+  <div class="screen-footer">
+    <button class="btn-primary" id="btn-setup-weiter" disabled>Weiter →</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SCREEN 2: KNOTEN UND STICHE
+     ═══════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-knoten">
+  <div class="screen-header">
+    <button class="btn-back" id="btn-knoten-back">←</button>
+    <h1>Knoten und Stiche</h1>
+    <span class="badge-variant" id="knoten-variant-badge"></span>
+  </div>
+  <div class="screen-body" id="knoten-body">
+    <!-- dynamically built -->
+  </div>
+  <div class="screen-footer">
+    <button class="btn-secondary" id="btn-knoten-weiter">Weiter →</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SCREEN 3: TESTFRAGEN
+     ═══════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-testfragen">
+  <div class="screen-header">
+    <button class="btn-back" id="btn-tf-back">←</button>
+    <h1>Testfragen</h1>
+    <span class="badge-variant" id="tf-variant-badge"></span>
+  </div>
+  <div class="screen-body">
+    <div class="card">
+      <div class="card-title">Gruppenführer – Testfragen</div>
+      <div class="text-muted mt-4">Höchstzeit: 10 Minuten</div>
+      <div class="timer-display mt-8" id="tf-gf-display">10:00</div>
+      <div class="timer-controls">
+        <button class="btn-start btn-sm" id="tf-gf-start">Start</button>
+        <button class="btn-stop btn-sm hidden" id="tf-gf-stop">Stop</button>
+        <button class="btn-reset btn-sm hidden" id="tf-gf-reset">Zurücksetzen</button>
+      </div>
+      <div class="knoten-result" id="tf-gf-result"></div>
+    </div>
+
+    <div class="card hidden" id="tf-mannschaft-card">
+      <div class="card-title">Mannschaft – Testfragen (Stufe 6)</div>
+      <div class="text-muted mt-4">Höchstzeit: 5 Minuten</div>
+      <div class="timer-display mt-8" id="tf-ma-display">05:00</div>
+      <div class="timer-controls">
+        <button class="btn-start btn-sm" id="tf-ma-start">Start</button>
+        <button class="btn-stop btn-sm hidden" id="tf-ma-stop">Stop</button>
+        <button class="btn-reset btn-sm hidden" id="tf-ma-reset">Zurücksetzen</button>
+      </div>
+      <div class="knoten-result" id="tf-ma-result"></div>
+    </div>
+  </div>
+  <div class="screen-footer">
+    <button class="btn-secondary" id="btn-tf-weiter">Weiter →</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SCREEN 4: EINSATZÜBUNG
+     ═══════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-einsatz">
+  <div class="screen-header">
+    <button class="btn-back" id="btn-einsatz-back">←</button>
+    <h1>Einsatzübung</h1>
+    <span class="badge-variant" id="einsatz-variant-badge"></span>
+  </div>
+  <div class="screen-body">
+    <div class="card">
+      <div class="timer-display" id="einsatz-display">00:00</div>
+      <div class="timer-max-label" id="einsatz-max-label"></div>
+      <div class="timer-controls">
+        <button class="btn-start" id="einsatz-start">Start</button>
+        <button class="btn-stop hidden" id="einsatz-stop">Stop</button>
+        <button class="btn-reset hidden" id="einsatz-reset">Zurücksetzen</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Zeitansagen</div>
+      <ul class="announce-log" id="einsatz-log">
+        <li id="ann-einsatz-60"  class="text-muted">60 s</li>
+        <li id="ann-einsatz-120" class="text-muted">120 s</li>
+        <li id="ann-einsatz-180" class="text-muted hidden">180 s</li>
+        <li id="ann-einsatz-240" class="text-muted hidden">240 s</li>
+      </ul>
+    </div>
+  </div>
+  <div class="screen-footer">
+    <button class="btn-secondary" id="btn-einsatz-weiter">Weiter →</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SCREEN 5: SAUGLEITUNG KUPPELN
+     ═══════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-saugleitung">
+  <div class="screen-header">
+    <button class="btn-back" id="btn-saug-back">←</button>
+    <h1>Saugleitung kuppeln</h1>
+    <span class="badge-variant" id="saug-variant-badge"></span>
+  </div>
+  <div class="screen-body">
+    <div class="card">
+      <div class="timer-display" id="saug-display">00:00</div>
+      <div class="timer-max-label" id="saug-max-label"></div>
+      <div class="timer-controls">
+        <button class="btn-start" id="saug-start">Start</button>
+        <button class="btn-stop hidden" id="saug-stop">Stop</button>
+        <button class="btn-reset hidden" id="saug-reset">Zurücksetzen</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Zeitansagen</div>
+      <ul class="announce-log">
+        <li id="ann-saug-60" class="text-muted">60 s</li>
+      </ul>
+    </div>
+  </div>
+  <div class="screen-footer">
+    <button class="btn-secondary" id="btn-saug-weiter">Weiter →</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SCREEN 6: TROCKENSAUGPROBE
+     ═══════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-trockensaug">
+  <div class="screen-header">
+    <button class="btn-back" id="btn-ts-back">←</button>
+    <h1>Trockensaugprobe</h1>
+    <span class="badge-variant" id="ts-variant-badge"></span>
+  </div>
+  <div class="screen-body">
+    <div class="card">
+      <div class="card-title">Gesamtzeitfenster <span class="badge">max. 300 s</span></div>
+      <div class="timer-display" id="ts-main-display">00:00</div>
+      <div class="timer-max-label">300 s – mehrere Versuche erlaubt</div>
+      <div class="timer-controls">
+        <button class="btn-start" id="ts-main-start">Start</button>
+        <button class="btn-stop hidden" id="ts-main-stop">Stop / Abschließen</button>
+        <button class="btn-reset hidden" id="ts-main-reset">Zurücksetzen</button>
+      </div>
+    </div>
+
+    <div class="card" id="ts-sub-card">
+      <div class="card-title">
+        Haltezeit nach Motorstop <span class="badge">120 s</span>
+      </div>
+      <div class="versuch-badge" id="ts-versuch-label">Versuch 1</div>
+      <div class="timer-sub" id="ts-sub-display">02:00</div>
+      <div class="timer-max-label">Unterdruck darf sich ≤ 0,1 bar verändern</div>
+      <div class="timer-controls" id="ts-sub-controls">
+        <button class="btn-start btn-sm" id="ts-motor-stop" disabled>Motor gestoppt</button>
+        <button class="btn-reset btn-sm hidden" id="ts-neuer-versuch">Neuer Versuch</button>
+      </div>
+      <div class="knoten-result" id="ts-sub-result"></div>
+    </div>
+  </div>
+  <div class="screen-footer">
+    <button class="btn-secondary" id="btn-ts-weiter">Weiter →</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SCREEN 7: ERGEBNIS
+     ═══════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-ergebnis">
+  <div class="screen-header">
+    <h1>Ergebnis</h1>
+    <span class="badge-variant" id="erg-variant-badge"></span>
+  </div>
+  <div class="screen-body">
+    <div class="gesamtergebnis" id="erg-gesamt"></div>
+
+    <div class="card">
+      <div class="card-title">Knoten und Stiche</div>
+      <table class="result-table" id="erg-knoten-table">
+        <thead><tr><th>Funktion</th><th>Zeit</th><th>Max</th><th></th></tr></thead>
+        <tbody id="erg-knoten-body"></tbody>
+      </table>
+    </div>
+
+    <div class="card hidden" id="erg-tf-card">
+      <div class="card-title">Testfragen</div>
+      <table class="result-table">
+        <thead><tr><th>Funktion</th><th>Zeit</th><th>Max</th><th></th></tr></thead>
+        <tbody id="erg-tf-body"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Einsatzübung</div>
+      <table class="result-table">
+        <thead><tr><th>Beschreibung</th><th>Zeit</th><th>Max</th><th></th></tr></thead>
+        <tbody id="erg-einsatz-body"></tbody>
+      </table>
+    </div>
+
+    <div class="card hidden" id="erg-saug-card">
+      <div class="card-title">Saugleitung kuppeln</div>
+      <table class="result-table">
+        <thead><tr><th>Beschreibung</th><th>Zeit</th><th>Max</th><th></th></tr></thead>
+        <tbody id="erg-saug-body"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Trockensaugprobe</div>
+      <table class="result-table">
+        <thead><tr><th>Beschreibung</th><th>Wert</th><th></th></tr></thead>
+        <tbody id="erg-ts-body"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="screen-footer">
+    <button class="btn-primary" id="btn-neue-pruefung">Neue Prüfung</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ════════════════════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════════════════════
+const CONFIG = {
+  variants: {
+    I:   { label: 'Variante I',   baseEinsatz: 190, hasSaugleitung: true },
+    II:  { label: 'Variante II',  baseEinsatz: 240, hasSaugleitung: false },
+    III: { label: 'Variante III', baseEinsatz: 300, hasSaugleitung: true },
+  },
+  knotenDefs: [
+    { id: 'maschinist', label: 'Maschinist', sublabel: 'Zimmermannsschlag', max: 15 },
+    { id: 'melder',     label: 'Melder',     sublabel: 'Mastwurf gestochen', max: 15 },
+    { id: 'atrupp',     label: 'Angriffstrupp (ATF + ATM)', sublabel: 'Brustbund gegenseitig', max: 40 },
+    { id: 'wtrupp',     label: 'Wassertrupp (WTF + WTM)',   sublabel: 'Halbmastwurf', max: 15 },
+    { id: 'strupp',     label: 'Schlauchtrupp (STF + STM)', sublabel: 'Mastwurf gelegt', max: 15 },
+  ],
+  saugleitungBase: 100,
+  trockensaugMax: 300,
+  trockensaugHolding: 120,
+  testfragenGF: 600,
+  testfragenMann: 300,
+};
+
+// ════════════════════════════════════════════════════════
+// SESSION
+// ════════════════════════════════════════════════════════
+let SESSION = buildSession();
+function buildSession() {
+  return {
+    variante: null,
+    stufe: null,
+    adj: {
+      extraBLaengen: 0,
+      saugschlauchCount: 0,
+      saugschlauchSign: 1,
+      ohneHalteleine: false,
+      bSaugleitungII: false,
+      bSaugleitungI: false,
+      dachverlastung: false,
+    },
+    einsatzMax: 0,
+    saugleitungMax: 0,
+    results: {
+      knoten: {},
+      testfragenGF: null,
+      testfragenMann: null,
+      einsatz: null,
+      saugleitung: null,
+      trockensaug: { mainElapsed: null, versuche: 0, haltezeitBestanden: false },
+    },
+  };
+}
+
+// ════════════════════════════════════════════════════════
+// PURE FUNCTIONS
+// ════════════════════════════════════════════════════════
+function computeEinsatzMax(variante, adj) {
+  let max;
+  if (variante === 'I')
+    max = 190 + 10 * Math.max(0, adj.extraBLaengen);
+  else if (variante === 'II')
+    max = 240
+      + 10 * adj.saugschlauchCount * adj.saugschlauchSign
+      + (adj.ohneHalteleine  ? -20 : 0)
+      + (adj.bSaugleitungII  ? -10 : 0)
+      + (adj.dachverlastung  ?  60 : 0);
+  else
+    max = 300 + 10 * Math.max(0, adj.extraBLaengen);
+  return Math.max(10, max);
+}
+
+function computeSaugleitungMax(adj) {
+  return Math.max(10,
+    100 + (adj.dachverlastung ? 60 : 0) + (adj.bSaugleitungI ? -10 : 0)
+  );
+}
+
+function colorState(elapsed, maxSeconds) {
+  const r = elapsed / maxSeconds;
+  if (r >= 1.0) return 'exceeded';
+  if (r >= 0.9) return 'danger';
+  if (r >= 0.75) return 'warning';
+  return 'ok';
+}
+
+function fmtMS(sec) {
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function fmtMST(sec) {
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  const t = Math.floor((sec * 10) % 10);
+  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${t}`;
+}
+
+function fmtSec(s) {
+  return s >= 60 ? `${fmtMS(s)} (${Math.round(s)} s)` : `${Math.round(s)} s`;
+}
+
+// ════════════════════════════════════════════════════════
+// AUDIO MANAGER
+// ════════════════════════════════════════════════════════
+const Audio = (() => {
+  let ctx = null;
+  function ensureCtx() {
+    if (!ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) ctx = new AC();
+    }
+    if (ctx && ctx.state === 'suspended') ctx.resume();
+  }
+  function beep(freq = 880, dur = 0.25, vol = 0.6) {
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(vol, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    osc.start(); osc.stop(ctx.currentTime + dur);
+  }
+  function announce(text) {
+    ensureCtx();
+    beep(660, 0.15, 0.5);
+    setTimeout(() => beep(880, 0.3, 0.6), 200);
+    if ('speechSynthesis' in window) {
+      const utt = new SpeechSynthesisUtterance(text);
+      utt.lang = 'de-DE';
+      utt.rate = 0.9;
+      setTimeout(() => window.speechSynthesis.speak(utt), 100);
+    }
+  }
+  const timeTexts = {
+    60:  'Sechzig Sekunden',
+    120: 'Hundertzwanzig Sekunden',
+    180: 'Hundertachtzig Sekunden',
+    240: 'Zweihundert vierzig Sekunden',
+  };
+  return {
+    ensureCtx,
+    beep,
+    announce,
+    timeAnnounce(sec) { announce(timeTexts[sec] ?? `${sec} Sekunden`); },
+  };
+})();
+
+// ════════════════════════════════════════════════════════
+// TIMER ENGINE
+// ════════════════════════════════════════════════════════
+class TimerEngine {
+  constructor({ maxSeconds, onTick, onAnnounce, announceTimes = [], countDown = false }) {
+    this.maxSeconds    = maxSeconds;
+    this.onTick        = onTick;
+    this.onAnnounce    = onAnnounce;
+    this.announceTimes = announceTimes;
+    this.countDown     = countDown;
+    this._state        = 'idle';
+    this._origin       = 0;
+    this._accumulated  = 0;
+    this._raf          = null;
+    this._fired        = new Set();
+  }
+  get state() { return this._state; }
+  get elapsed() {
+    if (this._state === 'running')
+      return this._accumulated + (performance.now() - this._origin) / 1000;
+    return this._accumulated;
+  }
+  start() {
+    if (this._state === 'running') return;
+    this._state  = 'running';
+    this._origin = performance.now();
+    this._loop();
+  }
+  stop() {
+    if (this._state !== 'running') return;
+    this._accumulated += (performance.now() - this._origin) / 1000;
+    this._state = 'stopped';
+    if (this._raf) { cancelAnimationFrame(this._raf); this._raf = null; }
+    this.onTick && this.onTick(this.elapsed, this._state);
+  }
+  reset() {
+    if (this._raf) { cancelAnimationFrame(this._raf); this._raf = null; }
+    this._state       = 'idle';
+    this._accumulated = 0;
+    this._fired.clear();
+    this.onTick && this.onTick(0, 'idle');
+  }
+  _loop() {
+    this._raf = requestAnimationFrame(() => {
+      if (this._state !== 'running') return;
+      const el = this.elapsed;
+      for (const t of this.announceTimes) {
+        if (el >= t && !this._fired.has(t)) {
+          this._fired.add(t);
+          this.onAnnounce && this.onAnnounce(t);
+        }
+      }
+      this.onTick && this.onTick(el, this._state);
+      this._loop();
+    });
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// NAV
+// ════════════════════════════════════════════════════════
+const SCREENS = ['setup','knoten','testfragen','einsatz','saugleitung','trockensaug','ergebnis'];
+const Nav = {
+  current: 'setup',
+  show(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + id).classList.add('active');
+    this.current = id;
+    window.scrollTo(0, 0);
+  },
+  next() {
+    const order = this._getOrder();
+    const idx   = order.indexOf(this.current);
+    if (idx >= 0 && idx < order.length - 1) {
+      const next = order[idx + 1];
+      this.show(next);
+      Screens[next] && Screens[next].activate();
+    }
+  },
+  back() {
+    const order = this._getOrder();
+    const idx   = order.indexOf(this.current);
+    if (idx > 0) {
+      const prev = order[idx - 1];
+      this.show(prev);
+    }
+  },
+  _getOrder() {
+    const list = ['setup', 'knoten'];
+    if (SESSION.stufe >= 2) list.push('testfragen');
+    list.push('einsatz');
+    if (CONFIG.variants[SESSION.variante]?.hasSaugleitung) list.push('saugleitung');
+    list.push('trockensaug');
+    list.push('ergebnis');
+    return list;
+  },
+};
+
+// ════════════════════════════════════════════════════════
+// SCREEN HELPERS
+// ════════════════════════════════════════════════════════
+function makeSingleTimer({ displayId, startId, stopId, resetId, resultId, maxSeconds, announceTimes, countDown, onResult, formatFn }) {
+  let engine = null;
+  formatFn = formatFn || fmtMST;
+  const display = document.getElementById(displayId);
+  const btnStart = document.getElementById(startId);
+  const btnStop  = document.getElementById(stopId);
+  const btnReset = document.getElementById(resetId);
+  const resultEl = resultId ? document.getElementById(resultId) : null;
+
+  function updateDisplay(el, st) {
+    el = el ?? 0; st = st ?? 'idle';
+    const val = countDown ? Math.max(0, maxSeconds - el) : el;
+    display.textContent = formatFn(val);
+    if (st === 'idle' || st === 'stopped') {
+      const cs = colorState(el, maxSeconds);
+      display.className = 'timer-display state-' + cs;
+    } else if (st === 'running') {
+      const cs = colorState(el, maxSeconds);
+      display.className = 'timer-display state-' + cs;
+    }
+  }
+
+  function init(max, announcements) {
+    maxSeconds   = max ?? maxSeconds;
+    announceTimes = announcements ?? announceTimes;
+    if (engine) engine.reset();
+    engine = new TimerEngine({
+      maxSeconds,
+      announceTimes: announceTimes || [],
+      onTick(el, st) { updateDisplay(el, st); },
+      onAnnounce(t) { Audio.timeAnnounce(t); },
+    });
+    display.className  = 'timer-display';
+    const v = countDown ? maxSeconds : 0;
+    display.textContent = formatFn(v);
+    btnStart.classList.remove('hidden');
+    btnStop.classList.add('hidden');
+    btnReset.classList.add('hidden');
+    if (resultEl) resultEl.textContent = '';
+  }
+
+  btnStart.addEventListener('click', () => {
+    Audio.ensureCtx();
+    if (!engine) return;
+    engine.start();
+    btnStart.classList.add('hidden');
+    btnStop.classList.remove('hidden');
+    btnReset.classList.add('hidden');
+  });
+
+  btnStop.addEventListener('click', () => {
+    if (!engine) return;
+    engine.stop();
+    btnStop.classList.add('hidden');
+    btnStart.classList.add('hidden');
+    btnReset.classList.remove('hidden');
+    const elapsed = engine.elapsed;
+    if (resultEl) {
+      const ok = elapsed <= maxSeconds;
+      resultEl.innerHTML = ok
+        ? `<span class="result-ok">✓ ${fmtMST(elapsed)} — Bestanden</span>`
+        : `<span class="result-fail">✗ ${fmtMST(elapsed)} — Nicht bestanden (Höchstzeit: ${fmtMS(maxSeconds)})</span>`;
+    }
+    onResult && onResult(elapsed);
+  });
+
+  btnReset.addEventListener('click', () => {
+    if (!confirm('Timer zurücksetzen?')) return;
+    engine.reset();
+    btnReset.classList.add('hidden');
+    btnStart.classList.remove('hidden');
+    btnStop.classList.add('hidden');
+    if (resultEl) resultEl.textContent = '';
+    onResult && onResult(null);
+  });
+
+  return { init, getElapsed: () => engine?.elapsed ?? null };
+}
+
+// ════════════════════════════════════════════════════════
+// SCREENS
+// ════════════════════════════════════════════════════════
+const Screens = {};
+
+// ── SETUP ───────────────────────────────────────────────
+Screens.setup = {
+  init() {
+    const btnWeiter = document.getElementById('btn-setup-weiter');
+
+    function readAdj() {
+      return {
+        extraBLaengen:    parseInt(document.getElementById('input-blaengen').value) || 0,
+        saugschlauchCount:parseInt(document.getElementById('input-saugschlauch-count').value) || 0,
+        saugschlauchSign: parseInt(document.getElementById('input-saugschlauch-sign').value) || 1,
+        ohneHalteleine:   document.getElementById('input-ohnehalteleine').checked,
+        bSaugleitungII:   document.getElementById('input-bsaugl-ii').checked,
+        bSaugleitungI:    document.getElementById('input-bsaugl-i').checked,
+        dachverlastung:   document.getElementById('input-dachverlastung').checked,
+      };
+    }
+
+    function updateUI() {
+      const variante = document.querySelector('input[name=variante]:checked')?.value ?? null;
+      const stufe    = parseInt(document.querySelector('input[name=stufe]:checked')?.value) || null;
+      btnWeiter.disabled = !(variante && stufe);
+
+      const isI   = variante === 'I';
+      const isII  = variante === 'II';
+      const isIII = variante === 'III';
+
+      document.getElementById('adj-blaengen').classList.toggle('hidden', !(isI || isIII));
+      document.getElementById('adj-saugschlauch').classList.toggle('hidden', !isII);
+      document.getElementById('adj-halteleine').classList.toggle('hidden', !isII);
+      document.getElementById('adj-bsaugl-ii').classList.toggle('hidden', !isII);
+      document.getElementById('adj-bsaugl-i').classList.toggle('hidden', !(isI || isIII));
+      document.getElementById('adj-dachverlastung').classList.toggle('hidden', !variante);
+      document.getElementById('adj-dach-sublabel').textContent =
+        isII ? '+60 s (Einsatzübung)' : '+60 s (Saugleitung kuppeln)';
+
+      const sauglRow = document.getElementById('ct-saugl-row');
+      sauglRow.classList.toggle('hidden', !(isI || isIII));
+
+      if (variante) {
+        const adj = readAdj();
+        const em  = computeEinsatzMax(variante, adj);
+        const sm  = computeSaugleitungMax(adj);
+        document.getElementById('ct-einsatz').textContent = `${em} s (${fmtMS(em)})`;
+        document.getElementById('ct-saugl').textContent   = `${sm} s`;
+      } else {
+        document.getElementById('ct-einsatz').textContent = '–';
+        document.getElementById('ct-saugl').textContent   = '–';
+      }
+    }
+
+    document.querySelectorAll('input[name=variante], input[name=stufe]')
+      .forEach(el => el.addEventListener('change', updateUI));
+    document.querySelectorAll('#adj-card input')
+      .forEach(el => el.addEventListener('input', updateUI));
+    document.querySelectorAll('#adj-card input[type=checkbox]')
+      .forEach(el => el.addEventListener('change', updateUI));
+    document.querySelectorAll('#adj-card select')
+      .forEach(el => el.addEventListener('change', updateUI));
+
+    btnWeiter.addEventListener('click', () => {
+      Audio.ensureCtx();
+      const variante = document.querySelector('input[name=variante]:checked').value;
+      const stufe    = parseInt(document.querySelector('input[name=stufe]:checked').value);
+      const adj      = readAdj();
+      SESSION = buildSession();
+      SESSION.variante    = variante;
+      SESSION.stufe       = stufe;
+      SESSION.adj         = adj;
+      SESSION.einsatzMax  = computeEinsatzMax(variante, adj);
+      SESSION.saugleitungMax = computeSaugleitungMax(adj);
+      Nav.next();
+      Screens.knoten.activate();
+    });
+  },
+};
+
+// ── KNOTEN ──────────────────────────────────────────────
+Screens.knoten = (() => {
+  const engines = {};
+
+  function buildCards() {
+    const body = document.getElementById('knoten-body');
+    body.innerHTML = '';
+    for (const def of CONFIG.knotenDefs) {
+      const div = document.createElement('div');
+      div.className = 'knoten-card';
+      div.innerHTML = `
+        <div class="knoten-header">
+          <div>
+            <div class="knoten-label">${def.label}</div>
+            <div class="text-muted">${def.sublabel}</div>
+          </div>
+          <span class="badge">max ${def.max} s</span>
+        </div>
+        <div class="timer-display" id="kn-${def.id}-display">00:00.0</div>
+        <div class="timer-controls">
+          <button class="btn-start btn-sm" id="kn-${def.id}-start">Start</button>
+          <button class="btn-stop btn-sm hidden" id="kn-${def.id}-stop">Stop</button>
+          <button class="btn-reset btn-sm hidden" id="kn-${def.id}-reset">↺</button>
+        </div>
+        <div class="knoten-result" id="kn-${def.id}-result"></div>
+      `;
+      body.appendChild(div);
+    }
+  }
+
+  return {
+    init() {
+      document.getElementById('btn-knoten-back').addEventListener('click', () => Nav.back());
+      document.getElementById('btn-knoten-weiter').addEventListener('click', () => {
+        Nav.next();
+      });
+    },
+    activate() {
+      document.getElementById('knoten-variant-badge').textContent =
+        CONFIG.variants[SESSION.variante].label + ' · Stufe ' + SESSION.stufe;
+      buildCards();
+
+      for (const def of CONFIG.knotenDefs) {
+        const display  = document.getElementById(`kn-${def.id}-display`);
+        const btnStart = document.getElementById(`kn-${def.id}-start`);
+        const btnStop  = document.getElementById(`kn-${def.id}-stop`);
+        const btnReset = document.getElementById(`kn-${def.id}-reset`);
+        const resultEl = document.getElementById(`kn-${def.id}-result`);
+
+        const eng = new TimerEngine({
+          maxSeconds: def.max,
+          onTick(el, st) {
+            display.textContent = fmtMST(el);
+            display.className = 'timer-display state-' + colorState(el, def.max);
+          },
+          onAnnounce() {},
+        });
+        engines[def.id] = eng;
+
+        btnStart.addEventListener('click', () => {
+          Audio.ensureCtx();
+          eng.start();
+          btnStart.classList.add('hidden');
+          btnStop.classList.remove('hidden');
+        });
+        btnStop.addEventListener('click', () => {
+          eng.stop();
+          btnStop.classList.add('hidden');
+          btnReset.classList.remove('hidden');
+          const el = eng.elapsed;
+          SESSION.results.knoten[def.id] = el;
+          const ok = el <= def.max;
+          resultEl.innerHTML = ok
+            ? `<span class="result-ok">✓ ${fmtMST(el)}</span>`
+            : `<span class="result-fail">✗ ${fmtMST(el)} (max ${def.max} s)</span>`;
+        });
+        btnReset.addEventListener('click', () => {
+          if (!confirm('Timer zurücksetzen?')) return;
+          eng.reset();
+          display.textContent = '00:00.0';
+          display.className = 'timer-display';
+          btnReset.classList.add('hidden');
+          btnStart.classList.remove('hidden');
+          resultEl.textContent = '';
+          delete SESSION.results.knoten[def.id];
+        });
+      }
+    },
+  };
+})();
+
+// ── TESTFRAGEN ──────────────────────────────────────────
+Screens.testfragen = (() => {
+  let gfTimer = null, maTimer = null;
+
+  function makeTimer(displayId, startId, stopId, resetId, resultId, maxSec) {
+    const display  = document.getElementById(displayId);
+    const btnStart = document.getElementById(startId);
+    const btnStop  = document.getElementById(stopId);
+    const btnReset = document.getElementById(resetId);
+    const resultEl = document.getElementById(resultId);
+
+    const eng = new TimerEngine({
+      maxSeconds: maxSec,
+      onTick(el) {
+        display.textContent = fmtMST(el);
+        display.className = 'timer-display state-' + colorState(el, maxSec);
+      },
+      onAnnounce() {},
+    });
+
+    btnStart.addEventListener('click', () => {
+      Audio.ensureCtx();
+      eng.start();
+      btnStart.classList.add('hidden');
+      btnStop.classList.remove('hidden');
+    });
+    btnStop.addEventListener('click', () => {
+      eng.stop();
+      btnStop.classList.add('hidden');
+      btnStart.classList.add('hidden');
+      btnReset.classList.remove('hidden');
+      const el = eng.elapsed;
+      const ok = el <= maxSec;
+      resultEl.innerHTML = ok
+        ? `<span class="result-ok">✓ ${fmtMST(el)}</span>`
+        : `<span class="result-fail">✗ ${fmtMST(el)} (max ${fmtMS(maxSec)})</span>`;
+      return el;
+    });
+    btnReset.addEventListener('click', () => {
+      if (!confirm('Timer zurücksetzen?')) return;
+      eng.reset();
+      display.textContent = '00:00.0';
+      display.className = 'timer-display';
+      btnStart.classList.remove('hidden');
+      btnStop.classList.add('hidden');
+      btnReset.classList.add('hidden');
+      resultEl.textContent = '';
+    });
+    return { eng, getElapsed: () => eng.state === 'stopped' ? eng.elapsed : null };
+  }
+
+  return {
+    init() {
+      document.getElementById('btn-tf-back').addEventListener('click', () => Nav.back());
+      document.getElementById('btn-tf-weiter').addEventListener('click', () => Nav.next());
+      gfTimer = makeTimer('tf-gf-display','tf-gf-start','tf-gf-stop','tf-gf-reset','tf-gf-result', CONFIG.testfragenGF);
+      maTimer = makeTimer('tf-ma-display','tf-ma-start','tf-ma-stop','tf-ma-reset','tf-ma-result', CONFIG.testfragenMann);
+
+      // Wire up result saving via stop buttons
+      document.getElementById('tf-gf-stop').addEventListener('click', () => {
+        setTimeout(() => { SESSION.results.testfragenGF = gfTimer.getElapsed(); }, 50);
+      }, true);
+      document.getElementById('tf-ma-stop').addEventListener('click', () => {
+        setTimeout(() => { SESSION.results.testfragenMann = maTimer.getElapsed(); }, 50);
+      }, true);
+    },
+    activate() {
+      document.getElementById('tf-variant-badge').textContent =
+        CONFIG.variants[SESSION.variante].label + ' · Stufe ' + SESSION.stufe;
+      const mannCard = document.getElementById('tf-mannschaft-card');
+      mannCard.classList.toggle('hidden', SESSION.stufe < 6);
+      // Reset timers
+      gfTimer.eng.reset();
+      document.getElementById('tf-gf-display').textContent = '00:00.0';
+      document.getElementById('tf-gf-display').className = 'timer-display';
+      document.getElementById('tf-gf-start').classList.remove('hidden');
+      document.getElementById('tf-gf-stop').classList.add('hidden');
+      document.getElementById('tf-gf-reset').classList.add('hidden');
+      document.getElementById('tf-gf-result').textContent = '';
+      maTimer.eng.reset();
+      document.getElementById('tf-ma-display').textContent = '00:00.0';
+      document.getElementById('tf-ma-display').className = 'timer-display';
+      document.getElementById('tf-ma-start').classList.remove('hidden');
+      document.getElementById('tf-ma-stop').classList.add('hidden');
+      document.getElementById('tf-ma-reset').classList.add('hidden');
+      document.getElementById('tf-ma-result').textContent = '';
+    },
+  };
+})();
+
+// ── EINSATZ ─────────────────────────────────────────────
+Screens.einsatz = (() => {
+  let eng = null;
+
+  return {
+    init() {
+      document.getElementById('btn-einsatz-back').addEventListener('click', () => Nav.back());
+      document.getElementById('btn-einsatz-weiter').addEventListener('click', () => Nav.next());
+
+      document.getElementById('einsatz-start').addEventListener('click', () => {
+        Audio.ensureCtx();
+        eng && eng.start();
+        document.getElementById('einsatz-start').classList.add('hidden');
+        document.getElementById('einsatz-stop').classList.remove('hidden');
+      });
+      document.getElementById('einsatz-stop').addEventListener('click', () => {
+        eng && eng.stop();
+        document.getElementById('einsatz-stop').classList.add('hidden');
+        document.getElementById('einsatz-start').classList.add('hidden');
+        document.getElementById('einsatz-reset').classList.remove('hidden');
+        SESSION.results.einsatz = eng.elapsed;
+      });
+      document.getElementById('einsatz-reset').addEventListener('click', () => {
+        if (!confirm('Einsatzübung zurücksetzen?')) return;
+        resetEngine();
+        SESSION.results.einsatz = null;
+      });
+    },
+    activate() {
+      const v = SESSION.variante;
+      document.getElementById('einsatz-variant-badge').textContent = CONFIG.variants[v].label;
+      const max = SESSION.einsatzMax;
+      document.getElementById('einsatz-max-label').textContent = `Höchstzeit: ${max} s (${fmtMS(max)})`;
+
+      // Announcement times
+      const annTimes = [60, 120];
+      if (max > 120) annTimes.push(180);
+      if (max > 180) annTimes.push(240);
+
+      const annEls = { 60: 'ann-einsatz-60', 120: 'ann-einsatz-120', 180: 'ann-einsatz-180', 240: 'ann-einsatz-240' };
+      document.getElementById('ann-einsatz-180').classList.toggle('hidden', max <= 120);
+      document.getElementById('ann-einsatz-240').classList.toggle('hidden', max <= 180);
+
+      Object.values(annEls).forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.className = 'text-muted'; el.style.background = ''; }
+      });
+
+      if (eng) eng.reset();
+      eng = new TimerEngine({
+        maxSeconds: max,
+        announceTimes: annTimes,
+        onTick(el, st) {
+          const display = document.getElementById('einsatz-display');
+          const overtime = el > max;
+          display.textContent = overtime ? '+' + fmtMST(el - max) : fmtMST(el);
+          display.className = 'timer-display state-' + colorState(el, max);
+        },
+        onAnnounce(t) {
+          Audio.timeAnnounce(t);
+          const elId = annEls[t];
+          if (elId) {
+            const el = document.getElementById(elId);
+            if (el) {
+              el.style.background = 'var(--c-warn)';
+              el.style.color = '#1a1a1a';
+              el.style.borderRadius = '6px';
+              el.style.padding = '6px 10px';
+            }
+          }
+        },
+      });
+
+      const display = document.getElementById('einsatz-display');
+      display.textContent = '00:00.0';
+      display.className = 'timer-display';
+      document.getElementById('einsatz-start').classList.remove('hidden');
+      document.getElementById('einsatz-stop').classList.add('hidden');
+      document.getElementById('einsatz-reset').classList.add('hidden');
+    },
+  };
+
+  function resetEngine() {
+    if (eng) eng.reset();
+    const display = document.getElementById('einsatz-display');
+    display.textContent = '00:00.0';
+    display.className = 'timer-display';
+    document.getElementById('einsatz-start').classList.remove('hidden');
+    document.getElementById('einsatz-stop').classList.add('hidden');
+    document.getElementById('einsatz-reset').classList.add('hidden');
+    // Reset announcement highlights
+    ['ann-einsatz-60','ann-einsatz-120','ann-einsatz-180','ann-einsatz-240'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.style.background = ''; el.style.color = ''; }
+    });
+  }
+})();
+
+// ── SAUGLEITUNG ─────────────────────────────────────────
+Screens.saugleitung = (() => {
+  let eng = null;
+
+  return {
+    init() {
+      document.getElementById('btn-saug-back').addEventListener('click', () => Nav.back());
+      document.getElementById('btn-saug-weiter').addEventListener('click', () => Nav.next());
+
+      document.getElementById('saug-start').addEventListener('click', () => {
+        Audio.ensureCtx();
+        eng && eng.start();
+        document.getElementById('saug-start').classList.add('hidden');
+        document.getElementById('saug-stop').classList.remove('hidden');
+      });
+      document.getElementById('saug-stop').addEventListener('click', () => {
+        eng && eng.stop();
+        document.getElementById('saug-stop').classList.add('hidden');
+        document.getElementById('saug-start').classList.add('hidden');
+        document.getElementById('saug-reset').classList.remove('hidden');
+        SESSION.results.saugleitung = eng.elapsed;
+      });
+      document.getElementById('saug-reset').addEventListener('click', () => {
+        if (!confirm('Saugleitung-Timer zurücksetzen?')) return;
+        resetSaug();
+        SESSION.results.saugleitung = null;
+      });
+    },
+    activate() {
+      const v = SESSION.variante;
+      document.getElementById('saug-variant-badge').textContent = CONFIG.variants[v].label;
+      const max = SESSION.saugleitungMax;
+      document.getElementById('saug-max-label').textContent = `Höchstzeit: ${max} s`;
+
+      const ann60 = document.getElementById('ann-saug-60');
+      ann60.style.background = ''; ann60.style.color = '';
+
+      if (eng) eng.reset();
+      eng = new TimerEngine({
+        maxSeconds: max,
+        announceTimes: [60],
+        onTick(el) {
+          const display = document.getElementById('saug-display');
+          const overtime = el > max;
+          display.textContent = overtime ? '+' + fmtMST(el - max) : fmtMST(el);
+          display.className = 'timer-display state-' + colorState(el, max);
+        },
+        onAnnounce(t) {
+          Audio.timeAnnounce(t);
+          if (t === 60) {
+            ann60.style.background = 'var(--c-warn)';
+            ann60.style.color = '#1a1a1a';
+          }
+        },
+      });
+
+      const display = document.getElementById('saug-display');
+      display.textContent = '00:00.0';
+      display.className = 'timer-display';
+      document.getElementById('saug-start').classList.remove('hidden');
+      document.getElementById('saug-stop').classList.add('hidden');
+      document.getElementById('saug-reset').classList.add('hidden');
+    },
+  };
+
+  function resetSaug() {
+    if (eng) eng.reset();
+    const display = document.getElementById('saug-display');
+    display.textContent = '00:00.0';
+    display.className = 'timer-display';
+    document.getElementById('saug-start').classList.remove('hidden');
+    document.getElementById('saug-stop').classList.add('hidden');
+    document.getElementById('saug-reset').classList.add('hidden');
+    const ann60 = document.getElementById('ann-saug-60');
+    ann60.style.background = ''; ann60.style.color = '';
+  }
+})();
+
+// ── TROCKENSAUGPROBE ─────────────────────────────────────
+Screens.trockensaug = (() => {
+  let mainEng = null, subEng = null;
+  let versuch = 0;
+  let subRunning = false;
+
+  return {
+    init() {
+      document.getElementById('btn-ts-back').addEventListener('click', () => Nav.back());
+      document.getElementById('btn-ts-weiter').addEventListener('click', () => Nav.next());
+
+      document.getElementById('ts-main-start').addEventListener('click', () => {
+        Audio.ensureCtx();
+        if (!mainEng) return;
+        mainEng.start();
+        document.getElementById('ts-main-start').classList.add('hidden');
+        document.getElementById('ts-main-stop').classList.remove('hidden');
+        document.getElementById('ts-motor-stop').disabled = false;
+      });
+
+      document.getElementById('ts-main-stop').addEventListener('click', () => {
+        if (subEng && subRunning) subEng.stop();
+        if (mainEng) mainEng.stop();
+        document.getElementById('ts-main-stop').classList.add('hidden');
+        document.getElementById('ts-main-start').classList.add('hidden');
+        document.getElementById('ts-main-reset').classList.remove('hidden');
+        document.getElementById('ts-motor-stop').disabled = true;
+        SESSION.results.trockensaug.mainElapsed = mainEng.elapsed;
+      });
+
+      document.getElementById('ts-main-reset').addEventListener('click', () => {
+        if (!confirm('Trockensaugprobe zurücksetzen?')) return;
+        resetAll();
+        SESSION.results.trockensaug = { mainElapsed: null, versuche: 0, haltezeitBestanden: false };
+      });
+
+      document.getElementById('ts-motor-stop').addEventListener('click', () => {
+        Audio.ensureCtx();
+        if (subRunning) {
+          // Already running – treat as new attempt (motor restarted, now stopped again)
+        }
+        versuch++;
+        SESSION.results.trockensaug.versuche = versuch;
+        document.getElementById('ts-versuch-label').textContent = `Versuch ${versuch}`;
+
+        if (subEng) subEng.reset();
+        subEng = new TimerEngine({
+          maxSeconds: CONFIG.trockensaugHolding,
+          onTick(el) {
+            const display = document.getElementById('ts-sub-display');
+            const remaining = Math.max(0, CONFIG.trockensaugHolding - el);
+            display.textContent = fmtMS(remaining);
+            display.className = 'timer-sub state-' + colorState(el, CONFIG.trockensaugHolding);
+            if (el >= CONFIG.trockensaugHolding && !SESSION.results.trockensaug.haltezeitBestanden) {
+              SESSION.results.trockensaug.haltezeitBestanden = true;
+              subEng.stop();
+              subRunning = false;
+              document.getElementById('ts-sub-result').innerHTML =
+                '<span class="result-ok">✓ Haltezeit bestanden</span>';
+              Audio.announce('Haltezeit bestanden');
+              document.getElementById('ts-motor-stop').classList.add('hidden');
+              document.getElementById('ts-neuer-versuch').classList.add('hidden');
+            }
+          },
+          onAnnounce() {},
+        });
+        subEng.start();
+        subRunning = true;
+
+        document.getElementById('ts-sub-result').textContent = '';
+        document.getElementById('ts-motor-stop').classList.add('hidden');
+        document.getElementById('ts-neuer-versuch').classList.remove('hidden');
+      });
+
+      document.getElementById('ts-neuer-versuch').addEventListener('click', () => {
+        // Motor restarted → stop sub-timer
+        if (subEng) { subEng.stop(); subRunning = false; }
+        document.getElementById('ts-sub-result').innerHTML =
+          '<span class="result-fail">✗ Haltezeit nicht erreicht</span>';
+        document.getElementById('ts-neuer-versuch').classList.add('hidden');
+        document.getElementById('ts-motor-stop').classList.remove('hidden');
+        document.getElementById('ts-motor-stop').disabled = false;
+        document.getElementById('ts-sub-display').className = 'timer-sub';
+      });
+    },
+
+    activate() {
+      const v = SESSION.variante;
+      document.getElementById('ts-variant-badge').textContent = CONFIG.variants[v].label;
+      resetAll();
+    },
+  };
+
+  function resetAll() {
+    versuch = 0;
+    subRunning = false;
+
+    if (mainEng) mainEng.reset();
+    mainEng = new TimerEngine({
+      maxSeconds: CONFIG.trockensaugMax,
+      announceTimes: [],
+      onTick(el) {
+        const display = document.getElementById('ts-main-display');
+        display.textContent = fmtMST(el);
+        display.className = 'timer-display state-' + colorState(el, CONFIG.trockensaugMax);
+      },
+      onAnnounce() {},
+    });
+
+    if (subEng) subEng.reset();
+    subEng = null;
+
+    const mainDisp = document.getElementById('ts-main-display');
+    mainDisp.textContent = '00:00.0';
+    mainDisp.className = 'timer-display';
+
+    const subDisp = document.getElementById('ts-sub-display');
+    subDisp.textContent = '02:00';
+    subDisp.className = 'timer-sub';
+
+    document.getElementById('ts-main-start').classList.remove('hidden');
+    document.getElementById('ts-main-stop').classList.add('hidden');
+    document.getElementById('ts-main-reset').classList.add('hidden');
+    document.getElementById('ts-motor-stop').classList.remove('hidden');
+    document.getElementById('ts-motor-stop').disabled = true;
+    document.getElementById('ts-neuer-versuch').classList.add('hidden');
+    document.getElementById('ts-sub-result').textContent = '';
+    document.getElementById('ts-versuch-label').textContent = 'Versuch 1';
+  }
+})();
+
+// ── ERGEBNIS ─────────────────────────────────────────────
+Screens.ergebnis = {
+  init() {
+    document.getElementById('btn-neue-pruefung').addEventListener('click', () => {
+      SESSION = buildSession();
+      Nav.show('setup');
+    });
+  },
+  activate() {
+    const r = SESSION.results;
+    const v = SESSION.variante;
+    const s = SESSION.stufe;
+    document.getElementById('erg-variant-badge').textContent =
+      CONFIG.variants[v].label + ' · Stufe ' + s;
+
+    let allOk = true;
+
+    // Knoten
+    const knotenBody = document.getElementById('erg-knoten-body');
+    knotenBody.innerHTML = '';
+    for (const def of CONFIG.knotenDefs) {
+      const elapsed = r.knoten[def.id];
+      const tr = document.createElement('tr');
+      if (elapsed == null) {
+        tr.innerHTML = `<td>${def.label}</td><td class="result-skip">–</td><td>${def.max} s</td><td class="result-skip">–</td>`;
+      } else {
+        const ok = elapsed <= def.max;
+        if (!ok) allOk = false;
+        tr.innerHTML = `<td>${def.label}</td><td>${fmtMST(elapsed)}</td><td>${def.max} s</td>
+          <td class="${ok ? 'result-ok' : 'result-fail'}">${ok ? '✓' : '✗'}</td>`;
+      }
+      knotenBody.appendChild(tr);
+    }
+
+    // Testfragen
+    const tfCard = document.getElementById('erg-tf-card');
+    tfCard.classList.toggle('hidden', s < 2);
+    if (s >= 2) {
+      const tfBody = document.getElementById('erg-tf-body');
+      tfBody.innerHTML = '';
+      const gf = r.testfragenGF;
+      const tfGFOk = gf == null || gf <= CONFIG.testfragenGF;
+      if (!tfGFOk) allOk = false;
+      tfBody.innerHTML += `<tr>
+        <td>Gruppenführer</td>
+        <td>${gf != null ? fmtMST(gf) : '–'}</td>
+        <td>${fmtMS(CONFIG.testfragenGF)}</td>
+        <td class="${gf == null ? 'result-skip' : (tfGFOk ? 'result-ok' : 'result-fail')}">${gf == null ? '–' : (tfGFOk ? '✓' : '✗')}</td>
+      </tr>`;
+      if (s >= 6) {
+        const ma = r.testfragenMann;
+        const maOk = ma == null || ma <= CONFIG.testfragenMann;
+        if (!maOk) allOk = false;
+        tfBody.innerHTML += `<tr>
+          <td>Mannschaft</td>
+          <td>${ma != null ? fmtMST(ma) : '–'}</td>
+          <td>${fmtMS(CONFIG.testfragenMann)}</td>
+          <td class="${ma == null ? 'result-skip' : (maOk ? 'result-ok' : 'result-fail')}">${ma == null ? '–' : (maOk ? '✓' : '✗')}</td>
+        </tr>`;
+      }
+    }
+
+    // Einsatz
+    const einsatzBody = document.getElementById('erg-einsatz-body');
+    const em = SESSION.einsatzMax;
+    const ea = r.einsatz;
+    const eOk = ea == null || ea <= em;
+    if (!eOk) allOk = false;
+    einsatzBody.innerHTML = `<tr>
+      <td>Variante ${v}</td>
+      <td>${ea != null ? fmtMST(ea) : '–'}</td>
+      <td>${em} s</td>
+      <td class="${ea == null ? 'result-skip' : (eOk ? 'result-ok' : 'result-fail')}">${ea == null ? '–' : (eOk ? '✓' : '✗')}</td>
+    </tr>`;
+
+    // Saugleitung
+    const saugCard = document.getElementById('erg-saug-card');
+    const hasSaug = CONFIG.variants[v].hasSaugleitung;
+    saugCard.classList.toggle('hidden', !hasSaug);
+    if (hasSaug) {
+      const sm = SESSION.saugleitungMax;
+      const sa = r.saugleitung;
+      const sOk = sa == null || sa <= sm;
+      if (!sOk) allOk = false;
+      document.getElementById('erg-saug-body').innerHTML = `<tr>
+        <td>Saugleitung kuppeln</td>
+        <td>${sa != null ? fmtMST(sa) : '–'}</td>
+        <td>${sm} s</td>
+        <td class="${sa == null ? 'result-skip' : (sOk ? 'result-ok' : 'result-fail')}">${sa == null ? '–' : (sOk ? '✓' : '✗')}</td>
+      </tr>`;
+    }
+
+    // Trockensaugprobe
+    const ts = r.trockensaug;
+    const tsMainOk = ts.mainElapsed == null || ts.mainElapsed <= CONFIG.trockensaugMax;
+    if (!tsMainOk) allOk = false;
+    document.getElementById('erg-ts-body').innerHTML = `
+      <tr><td>Gesamtzeit</td><td>${ts.mainElapsed != null ? fmtMST(ts.mainElapsed) : '–'}</td><td class="${tsMainOk ? 'result-ok' : 'result-fail'}">${ts.mainElapsed == null ? '–' : (tsMainOk ? '✓' : '✗')}</td></tr>
+      <tr><td>Anzahl Versuche</td><td>${ts.versuche}</td><td></td></tr>
+      <tr><td>Haltezeit 120 s</td><td>${ts.haltezeitBestanden ? 'Bestanden' : 'Nicht bestanden'}</td><td class="${ts.haltezeitBestanden ? 'result-ok' : 'result-fail'}">${ts.haltezeitBestanden ? '✓' : '✗'}</td></tr>
+    `;
+
+    // Gesamtergebnis
+    const gesamt = document.getElementById('erg-gesamt');
+    gesamt.className = 'gesamtergebnis ' + (allOk ? 'bestanden' : 'nicht-bestanden');
+    gesamt.textContent = allOk ? '✓ Bestanden' : '✗ Nicht bestanden';
+  },
+};
+
+// ════════════════════════════════════════════════════════
+// BOOT
+// ════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  Screens.setup.init();
+  Screens.knoten.init();
+  Screens.testfragen.init();
+  Screens.einsatz.init();
+  Screens.saugleitung.init();
+  Screens.trockensaug.init();
+  Screens.ergebnis.init();
+  Nav.show('setup');
+});
+</script>
+</body>
+</html>

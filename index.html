@@ -506,7 +506,7 @@ body.tf-active { padding-top: 48px; }
     <span class="tf-status-time" id="tf-gf-status-time">10:00</span>
   </div>
   <div class="tf-status-row hidden" id="tf-mann-status-row">
-    <span class="tf-status-label">📝 Mannsch.</span>
+    <span class="tf-status-label" id="tf-mann-status-label">📝 Mannsch.</span>
     <span class="tf-status-time" id="tf-mann-status-time">05:00</span>
   </div>
   <button id="tf-status-goto" class="btn-sm">→ Öffnen</button>
@@ -550,14 +550,24 @@ body.tf-active { padding-top: 48px; }
     </div>
 
     <div class="card">
-      <div class="card-title">Leistungsstufe</div>
-      <div class="stufe-grid" id="stufe-group">
-        <label><input type="radio" name="stufe" value="1">Stufe 1</label>
-        <label><input type="radio" name="stufe" value="2">Stufe 2</label>
-        <label><input type="radio" name="stufe" value="3">Stufe 3</label>
-        <label><input type="radio" name="stufe" value="4">Stufe 4</label>
-        <label><input type="radio" name="stufe" value="5">Stufe 5</label>
-        <label><input type="radio" name="stufe" value="6">Stufe 6</label>
+      <div class="card-title">Testfragen (parallele Stoppuhren)</div>
+      <div class="adj-row">
+        <div class="adj-label">
+          Gruppenführer macht Testfragen
+          <div class="adj-sublabel">Ab Stufe 2 – max. 10 Minuten</div>
+        </div>
+        <div class="adj-control">
+          <input type="checkbox" id="input-gf-testfragen">
+        </div>
+      </div>
+      <div class="adj-row">
+        <div class="adj-label">
+          Mannschaftsmitglieder mit Stufe 6
+          <div class="adj-sublabel">Jeweils eigener Testbogen, max. 5 Minuten</div>
+        </div>
+        <div class="adj-control">
+          <input type="number" id="input-stufe6-count" value="0" min="0" max="8">
+        </div>
       </div>
     </div>
 
@@ -670,7 +680,7 @@ body.tf-active { padding-top: 48px; }
     <span class="badge-variant" id="tf-variant-badge"></span>
   </div>
   <div class="screen-body">
-    <div class="card">
+    <div class="card hidden" id="tf-gf-card">
       <div class="card-title">Gruppenführer – Testfragen</div>
       <div class="text-muted mt-4">Höchstzeit: 10 Minuten</div>
       <div class="timer-display mt-8" id="tf-gf-display">10:00</div>
@@ -682,16 +692,12 @@ body.tf-active { padding-top: 48px; }
       <div class="knoten-result" id="tf-gf-result"></div>
     </div>
 
-    <div class="card hidden" id="tf-mannschaft-card">
-      <div class="card-title">Mannschaft – Testfragen (Stufe 6)</div>
-      <div class="text-muted mt-4">Höchstzeit: 5 Minuten</div>
-      <div class="timer-display mt-8" id="tf-mann-display">05:00</div>
-      <div class="timer-controls">
-        <button class="btn-start btn-sm" id="tf-mann-start">Start</button>
-        <button class="btn-stop btn-sm hidden" id="tf-mann-stop">Stop</button>
-        <button class="btn-reset btn-sm hidden" id="tf-mann-reset">Zurücksetzen</button>
-      </div>
-      <div class="knoten-result" id="tf-mann-result"></div>
+    <div id="tf-mannschaft-container">
+      <!-- Dynamically built per-member Stufe 6 cards -->
+    </div>
+
+    <div class="card hidden" id="tf-empty-hint">
+      <div class="text-muted text-center">Keine Testfragen-Stoppuhren konfiguriert.</div>
     </div>
   </div>
   <div class="screen-footer">
@@ -898,7 +904,8 @@ let SESSION = buildSession();
 function buildSession() {
   return {
     variante: null,
-    stufe: null,
+    gfTestfragen: false,    // GF answers Testfragen (Stufe 2+)
+    stufe6Count: 0,         // number of Mannschaft members with Stufe 6 (own Testbogen)
     adj: {
       extraBLaengen: 0,
       saugschlauchCount: 0,
@@ -913,7 +920,7 @@ function buildSession() {
     results: {
       knoten: {},
       testfragenGF: null,
-      testfragenMann: null,
+      testfragenMembers: [],   // one entry per Stufe 6 member
       einsatz: null,
       saugleitung: null,
       trockensaug: { mainElapsed: null, versuche: 0, haltezeitBestanden: false },
@@ -1121,7 +1128,7 @@ const Nav = {
 
   _getOrder() {
     const list = ['setup'];
-    if (SESSION.stufe >= 2) list.push('testfragen');
+    if (SESSION.gfTestfragen || SESSION.stufe6Count > 0) list.push('testfragen');
     list.push('knoten');
     list.push('einsatz');
     if (CONFIG.variants[SESSION.variante]?.hasSaugleitung) list.push('saugleitung');
@@ -1133,50 +1140,68 @@ const Nav = {
 
 // ════════════════════════════════════════════════════════
 // TESTFRAGEN MANAGER – runs in parallel to other timers
+// Supports 1 GF timer + N Mannschaft member timers (Stufe 6)
 // ════════════════════════════════════════════════════════
 const TF = {
-  engines: { gf: null, mann: null },
+  engines: { gf: null, members: [] },
 
   init() {
-    const onTickGF = (el, st) => this._onTick('gf', el, st);
-    const onTickMann = (el, st) => this._onTick('mann', el, st);
     this.engines.gf = new TimerEngine({
       maxSeconds: CONFIG.testfragenGF,
-      onTick: onTickGF,
+      onTick: (el, st) => this._onTickGF(el, st),
       onAnnounce: () => {},
     });
-    this.engines.mann = new TimerEngine({
-      maxSeconds: CONFIG.testfragenMann,
-      onTick: onTickMann,
-      onAnnounce: () => {},
-    });
-
     document.getElementById('tf-status-goto').addEventListener('click', () => {
       Nav.show('testfragen');
     });
   },
 
-  _onTick(which, el, st) {
-    const max = which === 'gf' ? CONFIG.testfragenGF : CONFIG.testfragenMann;
-
-    // Update local Testfragen screen display
-    const localDisp = document.getElementById(`tf-${which}-display`);
-    if (localDisp) {
-      const overtime = el > max;
-      localDisp.textContent = overtime ? '+' + fmtMST(el - max) : fmtMST(el);
-      localDisp.className = 'timer-display state-' + colorState(el, max);
+  rebuildMembers(count) {
+    // Reset and discard old member engines
+    this.engines.members.forEach(e => { if (e) e.reset(); });
+    this.engines.members = [];
+    for (let i = 0; i < count; i++) {
+      const idx = i;
+      this.engines.members.push(new TimerEngine({
+        maxSeconds: CONFIG.testfragenMann,
+        onTick: (el, st) => this._onTickMember(idx, el, st),
+        onAnnounce: () => {},
+      }));
     }
+    this.updateStatusBar();
+  },
 
-    // Update status bar
+  _onTickGF(el, st) {
+    const max = CONFIG.testfragenGF;
+    const disp = document.getElementById('tf-gf-display');
+    if (disp) {
+      const overtime = el > max;
+      disp.textContent = overtime ? '+' + fmtMST(el - max) : fmtMST(el);
+      disp.className = 'timer-display state-' + colorState(el, max);
+    }
+    this.updateStatusBar();
+  },
+
+  _onTickMember(idx, el, st) {
+    const max = CONFIG.testfragenMann;
+    const disp = document.getElementById(`tf-mann-${idx}-display`);
+    if (disp) {
+      const overtime = el > max;
+      disp.textContent = overtime ? '+' + fmtMST(el - max) : fmtMST(el);
+      disp.className = 'timer-display state-' + colorState(el, max);
+    }
     this.updateStatusBar();
   },
 
   updateStatusBar() {
     const bar = document.getElementById('tf-status-bar');
     if (!bar) return;
-    const gfActive   = this.engines.gf   && this.engines.gf.state   === 'running';
-    const mannActive = this.engines.mann && this.engines.mann.state === 'running';
-    const anyActive  = gfActive || mannActive;
+
+    const gfActive = this.engines.gf && this.engines.gf.state === 'running';
+    const runningMembers = this.engines.members
+      .map((e, i) => ({ e, i }))
+      .filter(({ e }) => e && e.state === 'running');
+    const anyActive = gfActive || runningMembers.length > 0;
     const onTfScreen = Nav.current === 'testfragen';
 
     if (anyActive && !onTfScreen) {
@@ -1187,9 +1212,7 @@ const TF = {
       document.body.classList.remove('tf-active');
     }
 
-    const gfRow   = document.getElementById('tf-gf-status-row');
-    const mannRow = document.getElementById('tf-mann-status-row');
-
+    const gfRow = document.getElementById('tf-gf-status-row');
     if (gfActive) {
       gfRow.classList.remove('hidden');
       const el  = this.engines.gf.elapsed;
@@ -1202,44 +1225,67 @@ const TF = {
       gfRow.classList.add('hidden');
     }
 
-    if (mannActive) {
+    const mannRow = document.getElementById('tf-mann-status-row');
+    if (runningMembers.length > 0) {
       mannRow.classList.remove('hidden');
-      const el  = this.engines.mann.elapsed;
       const max = CONFIG.testfragenMann;
-      const remaining = max - el;
-      const text = remaining >= 0 ? fmtMS(remaining) : '+' + fmtMS(-remaining);
+      // Show count + minimum remaining time across all active members
+      let minRemaining = Infinity;
+      let anyExceeded = false;
+      runningMembers.forEach(({ e }) => {
+        const rem = max - e.elapsed;
+        if (rem < minRemaining) minRemaining = rem;
+        if (e.elapsed >= max) anyExceeded = true;
+      });
+      const labelEl = document.getElementById('tf-mann-status-label');
+      labelEl.textContent = `📝 Mannsch. (${runningMembers.length})`;
+      const text = minRemaining >= 0 ? fmtMS(minRemaining) : '+' + fmtMS(-minRemaining);
       document.getElementById('tf-mann-status-time').textContent = text;
-      mannRow.classList.toggle('exceeded', el >= max);
+      mannRow.classList.toggle('exceeded', anyExceeded);
     } else {
       mannRow.classList.add('hidden');
     }
   },
 
-  start(which) {
+  startGF() {
     Audio.ensureCtx();
-    this.engines[which].start();
+    this.engines.gf.start();
+    this.updateStatusBar();
+  },
+  stopGF() {
+    this.engines.gf.stop();
+    SESSION.results.testfragenGF = this.engines.gf.elapsed;
+    this.updateStatusBar();
+    return this.engines.gf.elapsed;
+  },
+  resetGF() {
+    this.engines.gf.reset();
+    SESSION.results.testfragenGF = null;
     this.updateStatusBar();
   },
 
-  stop(which) {
-    this.engines[which].stop();
-    const el = this.engines[which].elapsed;
-    if (which === 'gf')   SESSION.results.testfragenGF   = el;
-    else                  SESSION.results.testfragenMann = el;
+  startMember(idx) {
+    Audio.ensureCtx();
+    this.engines.members[idx]?.start();
     this.updateStatusBar();
-    return el;
   },
-
-  reset(which) {
-    this.engines[which].reset();
-    if (which === 'gf')   SESSION.results.testfragenGF   = null;
-    else                  SESSION.results.testfragenMann = null;
+  stopMember(idx) {
+    const eng = this.engines.members[idx];
+    if (!eng) return null;
+    eng.stop();
+    SESSION.results.testfragenMembers[idx] = eng.elapsed;
+    this.updateStatusBar();
+    return eng.elapsed;
+  },
+  resetMember(idx) {
+    this.engines.members[idx]?.reset();
+    if (SESSION.results.testfragenMembers) SESSION.results.testfragenMembers[idx] = null;
     this.updateStatusBar();
   },
 
   resetAll() {
     this.engines.gf.reset();
-    this.engines.mann.reset();
+    this.engines.members.forEach(e => e && e.reset());
     this.updateStatusBar();
   },
 };
@@ -1350,8 +1396,7 @@ Screens.setup = {
 
     function updateUI() {
       const variante = document.querySelector('input[name=variante]:checked')?.value ?? null;
-      const stufe    = parseInt(document.querySelector('input[name=stufe]:checked')?.value) || null;
-      btnWeiter.disabled = !(variante && stufe);
+      btnWeiter.disabled = !variante;
 
       const isI   = variante === 'I';
       const isII  = variante === 'II';
@@ -1381,7 +1426,7 @@ Screens.setup = {
       }
     }
 
-    document.querySelectorAll('input[name=variante], input[name=stufe]')
+    document.querySelectorAll('input[name=variante]')
       .forEach(el => el.addEventListener('change', updateUI));
     document.querySelectorAll('#adj-card input')
       .forEach(el => el.addEventListener('input', updateUI));
@@ -1392,9 +1437,11 @@ Screens.setup = {
 
     btnWeiter.addEventListener('click', () => {
       Audio.ensureCtx();
-      const variante = document.querySelector('input[name=variante]:checked').value;
-      const stufe    = parseInt(document.querySelector('input[name=stufe]:checked').value);
-      const adj      = readAdj();
+      const variante     = document.querySelector('input[name=variante]:checked').value;
+      const gfTestfragen = document.getElementById('input-gf-testfragen').checked;
+      const stufe6Count  = Math.max(0, Math.min(8,
+        parseInt(document.getElementById('input-stufe6-count').value) || 0));
+      const adj          = readAdj();
 
       const hasResults =
         SESSION.variante != null && (
@@ -1402,27 +1449,31 @@ Screens.setup = {
           SESSION.results.einsatz != null ||
           SESSION.results.saugleitung != null ||
           SESSION.results.testfragenGF != null ||
-          SESSION.results.testfragenMann != null ||
+          (SESSION.results.testfragenMembers || []).some(v => v != null) ||
           SESSION.results.trockensaug.mainElapsed != null
         );
-      const coreChanged = SESSION.variante != null &&
-        (SESSION.variante !== variante || SESSION.stufe !== stufe);
+      const varianteChanged = SESSION.variante != null && SESSION.variante !== variante;
 
-      if (hasResults && coreChanged) {
-        if (!confirm('Variante oder Stufe wurde geändert. Alle bisher gestoppten Zeiten werden gelöscht. Fortfahren?')) return;
+      if (hasResults && varianteChanged) {
+        if (!confirm('Variante wurde geändert. Alle bisher gestoppten Zeiten werden gelöscht. Fortfahren?')) return;
       }
 
-      if (SESSION.variante == null || coreChanged) {
-        // Fresh start or hard change
+      if (SESSION.variante == null || varianteChanged) {
         SESSION = buildSession();
         TF.resetAll();
       }
 
       SESSION.variante       = variante;
-      SESSION.stufe          = stufe;
+      SESSION.gfTestfragen   = gfTestfragen;
+      SESSION.stufe6Count    = stufe6Count;
       SESSION.adj            = adj;
       SESSION.einsatzMax     = computeEinsatzMax(variante, adj);
       SESSION.saugleitungMax = computeSaugleitungMax(adj);
+      // Resize members results array
+      const cur = SESSION.results.testfragenMembers || [];
+      SESSION.results.testfragenMembers = Array.from({ length: stufe6Count },
+        (_, i) => cur[i] ?? null);
+      TF.rebuildMembers(stufe6Count);
       Nav.next();
     });
   },
@@ -1467,7 +1518,7 @@ Screens.knoten = (() => {
     },
     activate() {
       document.getElementById('knoten-variant-badge').textContent =
-        CONFIG.variants[SESSION.variante].label + ' · Stufe ' + SESSION.stufe;
+        CONFIG.variants[SESSION.variante].label;
       buildCards();
 
       for (const def of CONFIG.knotenDefs) {
@@ -1540,34 +1591,34 @@ Screens.knoten = (() => {
 // ── TESTFRAGEN (delegates to global TF manager – runs in parallel) ──
 Screens.testfragen = (() => {
 
-  function wireTimer(which, displayId, startId, stopId, resetId, resultId, maxSec) {
-    const display  = document.getElementById(displayId);
-    const btnStart = document.getElementById(startId);
-    const btnStop  = document.getElementById(stopId);
-    const btnReset = document.getElementById(resetId);
-    const resultEl = document.getElementById(resultId);
+  function wireGF() {
+    const display  = document.getElementById('tf-gf-display');
+    const btnStart = document.getElementById('tf-gf-start');
+    const btnStop  = document.getElementById('tf-gf-stop');
+    const btnReset = document.getElementById('tf-gf-reset');
+    const resultEl = document.getElementById('tf-gf-result');
+    const max      = CONFIG.testfragenGF;
 
     btnStart.addEventListener('click', () => {
-      TF.start(which);
+      TF.startGF();
       btnStart.classList.add('hidden');
       btnStop.classList.remove('hidden');
       btnReset.classList.add('hidden');
       resultEl.textContent = '';
     });
     btnStop.addEventListener('click', () => {
-      const el = TF.stop(which);
+      const el = TF.stopGF();
       btnStop.classList.add('hidden');
       btnStart.classList.add('hidden');
       btnReset.classList.remove('hidden');
-      const ok = el <= maxSec;
+      const ok = el <= max;
       resultEl.innerHTML = ok
         ? `<span class="result-ok">✓ ${fmtMST(el)}</span>`
-        : `<span class="result-fail">✗ ${fmtMST(el)} (max ${fmtMS(maxSec)})</span>`;
+        : `<span class="result-fail">✗ ${fmtMST(el)} (max ${fmtMS(max)})</span>`;
     });
     btnReset.addEventListener('click', () => {
-      const label = which === 'gf' ? 'Gruppenführer' : 'Mannschaft';
-      if (!confirm(`Testfragen-Zeit (${label}) wirklich zurücksetzen?`)) return;
-      TF.reset(which);
+      if (!confirm('Testfragen-Zeit (Gruppenführer) wirklich zurücksetzen?')) return;
+      TF.resetGF();
       display.textContent = '00:00.0';
       display.className = 'timer-display';
       btnStart.classList.remove('hidden');
@@ -1577,90 +1628,160 @@ Screens.testfragen = (() => {
     });
   }
 
-  function syncButtonsFromState() {
-    // GF
-    const gfState = TF.engines.gf.state;
-    const gfStart  = document.getElementById('tf-gf-start');
-    const gfStop   = document.getElementById('tf-gf-stop');
-    const gfReset  = document.getElementById('tf-gf-reset');
-    const gfResult = document.getElementById('tf-gf-result');
-    const gfDisp   = document.getElementById('tf-gf-display');
-    if (gfState === 'running') {
-      gfStart.classList.add('hidden');
-      gfStop.classList.remove('hidden');
-      gfReset.classList.add('hidden');
-      gfResult.textContent = '';
-    } else if (gfState === 'stopped') {
-      gfStart.classList.add('hidden');
-      gfStop.classList.add('hidden');
-      gfReset.classList.remove('hidden');
-      const el = TF.engines.gf.elapsed;
-      const ok = el <= CONFIG.testfragenGF;
-      gfResult.innerHTML = ok
-        ? `<span class="result-ok">✓ ${fmtMST(el)}</span>`
-        : `<span class="result-fail">✗ ${fmtMST(el)} (max ${fmtMS(CONFIG.testfragenGF)})</span>`;
-      const overtime = el > CONFIG.testfragenGF;
-      gfDisp.textContent = overtime ? '+' + fmtMST(el - CONFIG.testfragenGF) : fmtMST(el);
-      gfDisp.className = 'timer-display state-' + colorState(el, CONFIG.testfragenGF);
-    } else {
-      gfStart.classList.remove('hidden');
-      gfStop.classList.add('hidden');
-      gfReset.classList.add('hidden');
-      gfResult.textContent = '';
-      gfDisp.textContent = '00:00.0';
-      gfDisp.className = 'timer-display';
-    }
+  function buildMemberCards() {
+    const container = document.getElementById('tf-mannschaft-container');
+    container.innerHTML = '';
+    const max = CONFIG.testfragenMann;
+    for (let i = 0; i < SESSION.stufe6Count; i++) {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <div class="card-title">Stufe-6-Teilnehmer ${i + 1} – Testfragen</div>
+        <div class="text-muted mt-4">Höchstzeit: 5 Minuten</div>
+        <div class="timer-display mt-8" id="tf-mann-${i}-display">05:00</div>
+        <div class="timer-controls">
+          <button class="btn-start btn-sm" id="tf-mann-${i}-start">Start</button>
+          <button class="btn-stop btn-sm hidden" id="tf-mann-${i}-stop">Stop</button>
+          <button class="btn-reset btn-sm hidden" id="tf-mann-${i}-reset">Zurücksetzen</button>
+        </div>
+        <div class="knoten-result" id="tf-mann-${i}-result"></div>
+      `;
+      container.appendChild(card);
 
-    // Mannschaft
-    if (SESSION.stufe < 6) return;
-    const maState = TF.engines.mann.state;
-    const maStart  = document.getElementById('tf-mann-start');
-    const maStop   = document.getElementById('tf-mann-stop');
-    const maReset  = document.getElementById('tf-mann-reset');
-    const maResult = document.getElementById('tf-mann-result');
-    const maDisp   = document.getElementById('tf-mann-display');
-    if (maState === 'running') {
-      maStart.classList.add('hidden');
-      maStop.classList.remove('hidden');
-      maReset.classList.add('hidden');
-      maResult.textContent = '';
-    } else if (maState === 'stopped') {
-      maStart.classList.add('hidden');
-      maStop.classList.add('hidden');
-      maReset.classList.remove('hidden');
-      const el = TF.engines.mann.elapsed;
-      const ok = el <= CONFIG.testfragenMann;
-      maResult.innerHTML = ok
-        ? `<span class="result-ok">✓ ${fmtMST(el)}</span>`
-        : `<span class="result-fail">✗ ${fmtMST(el)} (max ${fmtMS(CONFIG.testfragenMann)})</span>`;
-      const overtime = el > CONFIG.testfragenMann;
-      maDisp.textContent = overtime ? '+' + fmtMST(el - CONFIG.testfragenMann) : fmtMST(el);
-      maDisp.className = 'timer-display state-' + colorState(el, CONFIG.testfragenMann);
-    } else {
-      maStart.classList.remove('hidden');
-      maStop.classList.add('hidden');
-      maReset.classList.add('hidden');
-      maResult.textContent = '';
-      maDisp.textContent = '00:00.0';
-      maDisp.className = 'timer-display';
+      const display  = document.getElementById(`tf-mann-${i}-display`);
+      const btnStart = document.getElementById(`tf-mann-${i}-start`);
+      const btnStop  = document.getElementById(`tf-mann-${i}-stop`);
+      const btnReset = document.getElementById(`tf-mann-${i}-reset`);
+      const resultEl = document.getElementById(`tf-mann-${i}-result`);
+
+      btnStart.addEventListener('click', () => {
+        TF.startMember(i);
+        btnStart.classList.add('hidden');
+        btnStop.classList.remove('hidden');
+        btnReset.classList.add('hidden');
+        resultEl.textContent = '';
+      });
+      btnStop.addEventListener('click', () => {
+        const el = TF.stopMember(i);
+        btnStop.classList.add('hidden');
+        btnStart.classList.add('hidden');
+        btnReset.classList.remove('hidden');
+        const ok = el <= max;
+        resultEl.innerHTML = ok
+          ? `<span class="result-ok">✓ ${fmtMST(el)}</span>`
+          : `<span class="result-fail">✗ ${fmtMST(el)} (max ${fmtMS(max)})</span>`;
+      });
+      btnReset.addEventListener('click', () => {
+        if (!confirm(`Testfragen-Zeit (Teilnehmer ${i + 1}) wirklich zurücksetzen?`)) return;
+        TF.resetMember(i);
+        display.textContent = '00:00.0';
+        display.className = 'timer-display';
+        btnStart.classList.remove('hidden');
+        btnStop.classList.add('hidden');
+        btnReset.classList.add('hidden');
+        resultEl.textContent = '';
+      });
     }
+  }
+
+  function syncMemberCard(i) {
+    const eng = TF.engines.members[i];
+    if (!eng) return;
+    const max = CONFIG.testfragenMann;
+    const display  = document.getElementById(`tf-mann-${i}-display`);
+    const btnStart = document.getElementById(`tf-mann-${i}-start`);
+    const btnStop  = document.getElementById(`tf-mann-${i}-stop`);
+    const btnReset = document.getElementById(`tf-mann-${i}-reset`);
+    const resultEl = document.getElementById(`tf-mann-${i}-result`);
+    if (!display) return;
+    const state = eng.state;
+    if (state === 'running') {
+      btnStart.classList.add('hidden');
+      btnStop.classList.remove('hidden');
+      btnReset.classList.add('hidden');
+      resultEl.textContent = '';
+    } else if (state === 'stopped') {
+      btnStart.classList.add('hidden');
+      btnStop.classList.add('hidden');
+      btnReset.classList.remove('hidden');
+      const el = eng.elapsed;
+      const ok = el <= max;
+      resultEl.innerHTML = ok
+        ? `<span class="result-ok">✓ ${fmtMST(el)}</span>`
+        : `<span class="result-fail">✗ ${fmtMST(el)} (max ${fmtMS(max)})</span>`;
+      const overtime = el > max;
+      display.textContent = overtime ? '+' + fmtMST(el - max) : fmtMST(el);
+      display.className = 'timer-display state-' + colorState(el, max);
+    } else {
+      btnStart.classList.remove('hidden');
+      btnStop.classList.add('hidden');
+      btnReset.classList.add('hidden');
+      resultEl.textContent = '';
+      display.textContent = '00:00.0';
+      display.className = 'timer-display';
+    }
+  }
+
+  function syncGFCard() {
+    const display  = document.getElementById('tf-gf-display');
+    const btnStart = document.getElementById('tf-gf-start');
+    const btnStop  = document.getElementById('tf-gf-stop');
+    const btnReset = document.getElementById('tf-gf-reset');
+    const resultEl = document.getElementById('tf-gf-result');
+    const max      = CONFIG.testfragenGF;
+    const state    = TF.engines.gf.state;
+    if (state === 'running') {
+      btnStart.classList.add('hidden');
+      btnStop.classList.remove('hidden');
+      btnReset.classList.add('hidden');
+      resultEl.textContent = '';
+    } else if (state === 'stopped') {
+      btnStart.classList.add('hidden');
+      btnStop.classList.add('hidden');
+      btnReset.classList.remove('hidden');
+      const el = TF.engines.gf.elapsed;
+      const ok = el <= max;
+      resultEl.innerHTML = ok
+        ? `<span class="result-ok">✓ ${fmtMST(el)}</span>`
+        : `<span class="result-fail">✗ ${fmtMST(el)} (max ${fmtMS(max)})</span>`;
+      const overtime = el > max;
+      display.textContent = overtime ? '+' + fmtMST(el - max) : fmtMST(el);
+      display.className = 'timer-display state-' + colorState(el, max);
+    } else {
+      btnStart.classList.remove('hidden');
+      btnStop.classList.add('hidden');
+      btnReset.classList.add('hidden');
+      resultEl.textContent = '';
+      display.textContent = '00:00.0';
+      display.className = 'timer-display';
+    }
+  }
+
+  function syncAll() {
+    if (SESSION.gfTestfragen) syncGFCard();
+    for (let i = 0; i < SESSION.stufe6Count; i++) syncMemberCard(i);
   }
 
   return {
     init() {
       document.getElementById('btn-tf-back').addEventListener('click', () => Nav.back());
       document.getElementById('btn-tf-weiter').addEventListener('click', () => Nav.next());
-      wireTimer('gf',   'tf-gf-display', 'tf-gf-start', 'tf-gf-stop', 'tf-gf-reset', 'tf-gf-result', CONFIG.testfragenGF);
-      wireTimer('mann', 'tf-mann-display', 'tf-mann-start', 'tf-mann-stop', 'tf-mann-reset', 'tf-mann-result', CONFIG.testfragenMann);
+      wireGF();
     },
     activate() {
       document.getElementById('tf-variant-badge').textContent =
-        CONFIG.variants[SESSION.variante].label + ' · Stufe ' + SESSION.stufe;
-      const mannCard = document.getElementById('tf-mannschaft-card');
-      mannCard.classList.toggle('hidden', SESSION.stufe < 6);
-      syncButtonsFromState();
+        CONFIG.variants[SESSION.variante].label;
+      const gfCard = document.getElementById('tf-gf-card');
+      gfCard.classList.toggle('hidden', !SESSION.gfTestfragen);
+
+      buildMemberCards();
+
+      const noTimers = !SESSION.gfTestfragen && SESSION.stufe6Count === 0;
+      document.getElementById('tf-empty-hint').classList.toggle('hidden', !noTimers);
+
+      syncAll();
     },
-    sync: syncButtonsFromState,
+    sync: syncAll,
   };
 })();
 
@@ -2005,9 +2126,8 @@ Screens.ergebnis = {
   activate() {
     const r = SESSION.results;
     const v = SESSION.variante;
-    const s = SESSION.stufe;
     document.getElementById('erg-variant-badge').textContent =
-      CONFIG.variants[v].label + ' · Stufe ' + s;
+      CONFIG.variants[v].label;
 
     let allOk = true;
 
@@ -2030,25 +2150,28 @@ Screens.ergebnis = {
 
     // Testfragen
     const tfCard = document.getElementById('erg-tf-card');
-    tfCard.classList.toggle('hidden', s < 2);
-    if (s >= 2) {
+    const hasTF = SESSION.gfTestfragen || SESSION.stufe6Count > 0;
+    tfCard.classList.toggle('hidden', !hasTF);
+    if (hasTF) {
       const tfBody = document.getElementById('erg-tf-body');
       tfBody.innerHTML = '';
-      const gf = r.testfragenGF;
-      const tfGFOk = gf == null || gf <= CONFIG.testfragenGF;
-      if (!tfGFOk) allOk = false;
-      tfBody.innerHTML += `<tr>
-        <td>Gruppenführer</td>
-        <td>${gf != null ? fmtMST(gf) : '–'}</td>
-        <td>${fmtMS(CONFIG.testfragenGF)}</td>
-        <td class="${gf == null ? 'result-skip' : (tfGFOk ? 'result-ok' : 'result-fail')}">${gf == null ? '–' : (tfGFOk ? '✓' : '✗')}</td>
-      </tr>`;
-      if (s >= 6) {
-        const ma = r.testfragenMann;
-        const maOk = ma == null || ma <= CONFIG.testfragenMann;
-        if (!maOk) allOk = false;
+      if (SESSION.gfTestfragen) {
+        const gf = r.testfragenGF;
+        const tfGFOk = gf == null || gf <= CONFIG.testfragenGF;
+        if (gf != null && !tfGFOk) allOk = false;
         tfBody.innerHTML += `<tr>
-          <td>Mannschaft</td>
+          <td>Gruppenführer</td>
+          <td>${gf != null ? fmtMST(gf) : '–'}</td>
+          <td>${fmtMS(CONFIG.testfragenGF)}</td>
+          <td class="${gf == null ? 'result-skip' : (tfGFOk ? 'result-ok' : 'result-fail')}">${gf == null ? '–' : (tfGFOk ? '✓' : '✗')}</td>
+        </tr>`;
+      }
+      for (let i = 0; i < SESSION.stufe6Count; i++) {
+        const ma = r.testfragenMembers[i];
+        const maOk = ma == null || ma <= CONFIG.testfragenMann;
+        if (ma != null && !maOk) allOk = false;
+        tfBody.innerHTML += `<tr>
+          <td>Stufe-6-Teilnehmer ${i + 1}</td>
           <td>${ma != null ? fmtMST(ma) : '–'}</td>
           <td>${fmtMS(CONFIG.testfragenMann)}</td>
           <td class="${ma == null ? 'result-skip' : (maOk ? 'result-ok' : 'result-fail')}">${ma == null ? '–' : (maOk ? '✓' : '✗')}</td>

@@ -2000,10 +2000,7 @@ Screens.einsatz = (() => {
 
   return {
     init() {
-      document.getElementById('btn-einsatz-back').addEventListener('click', () => {
-        if (eng && eng.state === 'running') { eng.stop(); SESSION.results.einsatz = eng.elapsed; }
-        Nav.back();
-      });
+      document.getElementById('btn-einsatz-back').addEventListener('click', () => Nav.back());
       document.getElementById('btn-einsatz-weiter').addEventListener('click', () => Nav.next());
 
       document.getElementById('einsatz-start').addEventListener('click', () => {
@@ -2056,6 +2053,15 @@ Screens.einsatz = (() => {
         el.style.padding = '';
       }
 
+      // If timer is already running (e.g. user navigated back accidentally), just
+      // reconnect the UI — onTick keeps the display live via getElementById each frame.
+      if (eng && eng.state === 'running') {
+        document.getElementById('einsatz-start').classList.add('hidden');
+        document.getElementById('einsatz-stop').classList.remove('hidden');
+        document.getElementById('einsatz-reset').classList.add('hidden');
+        return;
+      }
+
       if (eng) eng.reset();
       eng = new TimerEngine({
         maxSeconds: max,
@@ -2088,7 +2094,7 @@ Screens.einsatz = (() => {
       document.getElementById('einsatz-stop').classList.add('hidden');
       document.getElementById('einsatz-reset').classList.add('hidden');
 
-      // Restore previously stopped time (when navigating back)
+      // Restore previously stopped time (when navigating back after stopping)
       const saved = SESSION.results.einsatz;
       if (saved != null) {
         const overtime = saved > max;
@@ -2123,10 +2129,7 @@ Screens.saugleitung = (() => {
 
   return {
     init() {
-      document.getElementById('btn-saug-back').addEventListener('click', () => {
-        if (eng && eng.state === 'running') { eng.stop(); SESSION.results.saugleitung = eng.elapsed; }
-        Nav.back();
-      });
+      document.getElementById('btn-saug-back').addEventListener('click', () => Nav.back());
       document.getElementById('btn-saug-weiter').addEventListener('click', () => Nav.next());
 
       document.getElementById('saug-start').addEventListener('click', () => {
@@ -2155,6 +2158,14 @@ Screens.saugleitung = (() => {
 
       const ann60 = document.getElementById('ann-saug-60');
       ann60.style.background = ''; ann60.style.color = '';
+
+      // If timer is already running, just reconnect the UI without resetting.
+      if (eng && eng.state === 'running') {
+        document.getElementById('saug-start').classList.add('hidden');
+        document.getElementById('saug-stop').classList.remove('hidden');
+        document.getElementById('saug-reset').classList.add('hidden');
+        return;
+      }
 
       if (eng) eng.reset();
       eng = new TimerEngine({

@@ -1012,6 +1012,7 @@ body.tf-active { padding-top: 48px; }
     </div>
   </div>
   <div class="screen-footer">
+    <button class="btn-secondary" id="btn-ergebnis-back">← Zurück</button>
     <button class="btn-primary" id="btn-neue-pruefung">Neue Prüfung</button>
   </div>
 </div>
@@ -2379,6 +2380,7 @@ Screens.trockensaug = (() => {
 // ── ERGEBNIS ─────────────────────────────────────────────
 Screens.ergebnis = {
   init() {
+    document.getElementById('btn-ergebnis-back').addEventListener('click', () => Nav.back());
     document.getElementById('btn-neue-pruefung').addEventListener('click', async () => {
       if (!await confirmReset('Neue Prüfung beginnen? Alle gestoppten Zeiten gehen verloren.')) return;
       SESSION = buildSession();

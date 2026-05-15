@@ -2352,7 +2352,8 @@ Screens.trockensaug = (() => {
 // ── ERGEBNIS ─────────────────────────────────────────────
 Screens.ergebnis = {
   init() {
-    document.getElementById('btn-neue-pruefung').addEventListener('click', () => {
+    document.getElementById('btn-neue-pruefung').addEventListener('click', async () => {
+      if (!await confirmReset('Neue Prüfung beginnen? Alle gestoppten Zeiten gehen verloren.')) return;
       SESSION = buildSession();
       TF.resetAll();
       Nav.show('auswahl', { pushHistory: false });

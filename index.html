@@ -493,9 +493,54 @@ body.tf-active { padding-top: 48px; }
   .screen-footer .btn-primary, .screen-footer .btn-secondary { max-width: 240px; }
   .setup-title h1 { font-size: 1.7rem; }
 }
+
+/* ── Custom confirm modal (replaces window.confirm) ────── */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: rgba(0,0,0,0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.confirm-box {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 24px 20px;
+  max-width: 320px;
+  width: 100%;
+}
+.confirm-msg {
+  font-size: 1rem;
+  line-height: 1.5;
+  margin-bottom: 20px;
+  text-align: center;
+}
+.confirm-btns {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+.result-warn { color: var(--c-warn-light); font-weight: 700; }
 </style>
 </head>
 <body>
+
+<!-- ═══════════════════════════════════════════════════════
+     CUSTOM CONFIRM MODAL
+     ═══════════════════════════════════════════════════════ -->
+<div id="confirm-overlay" class="confirm-overlay hidden">
+  <div class="confirm-box">
+    <div class="confirm-msg" id="confirm-msg">Wirklich zurücksetzen?</div>
+    <div class="confirm-btns">
+      <button class="btn-reset" id="confirm-yes">Ja, zurücksetzen</button>
+      <button class="btn-secondary" id="confirm-no">Abbrechen</button>
+    </div>
+  </div>
+</div>
 
 <!-- ═══════════════════════════════════════════════════════
      GLOBAL TESTFRAGEN STATUS BAR (parallel running timers)
@@ -1291,6 +1336,22 @@ const TF = {
 };
 
 // ════════════════════════════════════════════════════════
+// CONFIRM HELPER – custom in-page modal (replaces window.confirm)
+// ════════════════════════════════════════════════════════
+function confirmReset(message) {
+  return new Promise(resolve => {
+    const overlay = document.getElementById('confirm-overlay');
+    const msgEl   = document.getElementById('confirm-msg');
+    const btnYes  = document.getElementById('confirm-yes');
+    const btnNo   = document.getElementById('confirm-no');
+    msgEl.textContent = message;
+    overlay.classList.remove('hidden');
+    btnYes.addEventListener('click', () => { overlay.classList.add('hidden'); resolve(true);  }, { once: true });
+    btnNo.addEventListener( 'click', () => { overlay.classList.add('hidden'); resolve(false); }, { once: true });
+  });
+}
+
+// ════════════════════════════════════════════════════════
 // SCREEN HELPERS
 // ════════════════════════════════════════════════════════
 function makeSingleTimer({ displayId, startId, stopId, resetId, resultId, maxSeconds, announceTimes, countDown, onResult, formatFn }) {
@@ -1359,8 +1420,8 @@ function makeSingleTimer({ displayId, startId, stopId, resetId, resultId, maxSec
     onResult && onResult(elapsed);
   });
 
-  btnReset.addEventListener('click', () => {
-    if (!confirm('Diese Zeit wirklich zurücksetzen?')) return;
+  btnReset.addEventListener('click', async () => {
+    if (!await confirmReset('Diese Zeit wirklich zurücksetzen?')) return;
     engine.reset();
     btnReset.classList.add('hidden');
     btnStart.classList.remove('hidden');
@@ -1435,7 +1496,7 @@ Screens.setup = {
     document.querySelectorAll('#adj-card select')
       .forEach(el => el.addEventListener('change', updateUI));
 
-    btnWeiter.addEventListener('click', () => {
+    btnWeiter.addEventListener('click', async () => {
       Audio.ensureCtx();
       const variante     = document.querySelector('input[name=variante]:checked').value;
       const gfTestfragen = document.getElementById('input-gf-testfragen').checked;
@@ -1455,7 +1516,7 @@ Screens.setup = {
       const varianteChanged = SESSION.variante != null && SESSION.variante !== variante;
 
       if (hasResults && varianteChanged) {
-        if (!confirm('Variante wurde geändert. Alle bisher gestoppten Zeiten werden gelöscht. Fortfahren?')) return;
+        if (!await confirmReset('Variante wurde geändert. Alle bisher gestoppten Zeiten werden gelöscht. Fortfahren?')) return;
       }
 
       if (SESSION.variante == null || varianteChanged) {
@@ -1556,10 +1617,10 @@ Screens.knoten = (() => {
           const ok = el <= def.max;
           resultEl.innerHTML = ok
             ? `<span class="result-ok">✓ ${fmtMST(el)}</span>`
-            : `<span class="result-fail">✗ ${fmtMST(el)} (max ${def.max} s)</span>`;
+            : `<span class="result-warn">⚠ ${fmtMST(el)} (max ${def.max} s) – 5 Fehlerpunkte</span>`;
         });
-        btnReset.addEventListener('click', () => {
-          if (!confirm(`Zeit für ${def.label} wirklich zurücksetzen?`)) return;
+        btnReset.addEventListener('click', async () => {
+          if (!await confirmReset(`Zeit für ${def.label} wirklich zurücksetzen?`)) return;
           eng.reset();
           display.textContent = '00:00.0';
           display.className = 'timer-display';
@@ -1581,7 +1642,7 @@ Screens.knoten = (() => {
           const ok = savedElapsed <= def.max;
           resultEl.innerHTML = ok
             ? `<span class="result-ok">✓ ${fmtMST(savedElapsed)}</span>`
-            : `<span class="result-fail">✗ ${fmtMST(savedElapsed)} (max ${def.max} s)</span>`;
+            : `<span class="result-warn">⚠ ${fmtMST(savedElapsed)} (max ${def.max} s) – 5 Fehlerpunkte</span>`;
         }
       }
     },
@@ -1616,8 +1677,8 @@ Screens.testfragen = (() => {
         ? `<span class="result-ok">✓ ${fmtMST(el)}</span>`
         : `<span class="result-fail">✗ ${fmtMST(el)} (max ${fmtMS(max)})</span>`;
     });
-    btnReset.addEventListener('click', () => {
-      if (!confirm('Testfragen-Zeit (Gruppenführer) wirklich zurücksetzen?')) return;
+    btnReset.addEventListener('click', async () => {
+      if (!await confirmReset('Testfragen-Zeit (Gruppenführer) wirklich zurücksetzen?')) return;
       TF.resetGF();
       display.textContent = '00:00.0';
       display.className = 'timer-display';
@@ -1671,8 +1732,8 @@ Screens.testfragen = (() => {
           ? `<span class="result-ok">✓ ${fmtMST(el)}</span>`
           : `<span class="result-fail">✗ ${fmtMST(el)} (max ${fmtMS(max)})</span>`;
       });
-      btnReset.addEventListener('click', () => {
-        if (!confirm(`Testfragen-Zeit (Teilnehmer ${i + 1}) wirklich zurücksetzen?`)) return;
+      btnReset.addEventListener('click', async () => {
+        if (!await confirmReset(`Testfragen-Zeit (Teilnehmer ${i + 1}) wirklich zurücksetzen?`)) return;
         TF.resetMember(i);
         display.textContent = '00:00.0';
         display.className = 'timer-display';
@@ -1807,8 +1868,8 @@ Screens.einsatz = (() => {
         document.getElementById('einsatz-reset').classList.remove('hidden');
         SESSION.results.einsatz = eng.elapsed;
       });
-      document.getElementById('einsatz-reset').addEventListener('click', () => {
-        if (!confirm('Einsatzübungs-Zeit wirklich zurücksetzen?')) return;
+      document.getElementById('einsatz-reset').addEventListener('click', async () => {
+        if (!await confirmReset('Einsatzübungs-Zeit wirklich zurücksetzen?')) return;
         resetEngine();
         SESSION.results.einsatz = null;
       });
@@ -1916,8 +1977,8 @@ Screens.saugleitung = (() => {
         document.getElementById('saug-reset').classList.remove('hidden');
         SESSION.results.saugleitung = eng.elapsed;
       });
-      document.getElementById('saug-reset').addEventListener('click', () => {
-        if (!confirm('Saugleitung-Zeit wirklich zurücksetzen?')) return;
+      document.getElementById('saug-reset').addEventListener('click', async () => {
+        if (!await confirmReset('Saugleitung-Zeit wirklich zurücksetzen?')) return;
         resetSaug();
         SESSION.results.saugleitung = null;
       });
@@ -2013,8 +2074,8 @@ Screens.trockensaug = (() => {
         SESSION.results.trockensaug.mainElapsed = mainEng.elapsed;
       });
 
-      document.getElementById('ts-main-reset').addEventListener('click', () => {
-        if (!confirm('Trockensaugprobe wirklich zurücksetzen?')) return;
+      document.getElementById('ts-main-reset').addEventListener('click', async () => {
+        if (!await confirmReset('Trockensaugprobe wirklich zurücksetzen?')) return;
         resetAll();
         SESSION.results.trockensaug = { mainElapsed: null, versuche: 0, haltezeitBestanden: false };
       });
@@ -2131,9 +2192,10 @@ Screens.ergebnis = {
 
     let allOk = true;
 
-    // Knoten
+    // Knoten – time exceeded → Fehlerpunkte (5 FP each), not automatic fail
     const knotenBody = document.getElementById('erg-knoten-body');
     knotenBody.innerHTML = '';
+    let knotenFP = 0;
     for (const def of CONFIG.knotenDefs) {
       const elapsed = r.knoten[def.id];
       const tr = document.createElement('tr');
@@ -2141,11 +2203,16 @@ Screens.ergebnis = {
         tr.innerHTML = `<td>${def.label}</td><td class="result-skip">–</td><td>${def.max} s</td><td class="result-skip">–</td>`;
       } else {
         const ok = elapsed <= def.max;
-        if (!ok) allOk = false;
+        if (!ok) knotenFP += 5;
         tr.innerHTML = `<td>${def.label}</td><td>${fmtMST(elapsed)}</td><td>${def.max} s</td>
-          <td class="${ok ? 'result-ok' : 'result-fail'}">${ok ? '✓' : '✗'}</td>`;
+          <td class="${ok ? 'result-ok' : 'result-warn'}">${ok ? '✓' : '5 FP'}</td>`;
       }
       knotenBody.appendChild(tr);
+    }
+    if (knotenFP > 0) {
+      const fpRow = document.createElement('tr');
+      fpRow.innerHTML = `<td colspan="3" style="padding-top:6px"><strong>Fehlerpunkte Knoten gesamt:</strong></td><td class="result-warn"><strong>${knotenFP}</strong></td>`;
+      knotenBody.appendChild(fpRow);
     }
 
     // Testfragen

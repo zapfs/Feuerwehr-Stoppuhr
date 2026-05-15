@@ -363,6 +363,19 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
   font-size: 1rem;
   text-align: center;
 }
+.number-stepper { display: flex; align-items: center; gap: 4px; }
+.stepper-btn {
+  width: 36px; height: 36px;
+  border: 1px solid var(--c-border);
+  border-radius: 6px;
+  background: var(--c-surface2);
+  color: var(--c-text);
+  font-size: 1.25rem; line-height: 1;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  touch-action: manipulation; user-select: none;
+}
+.stepper-btn:active { background: var(--c-surface3); }
 .adj-control input[type=checkbox] {
   width: 22px;
   height: 22px;
@@ -678,7 +691,11 @@ body.tf-active { padding-top: 48px; }
           <div class="adj-sublabel">Jeweils eigener Testbogen, max. 5 Minuten</div>
         </div>
         <div class="adj-control">
-          <input type="number" id="input-stufe6-count" value="0" min="0" max="8">
+          <div class="number-stepper">
+            <button type="button" class="stepper-btn" data-for="input-stufe6-count" data-delta="-1">−</button>
+            <input type="number" id="input-stufe6-count" value="0" min="0" max="8">
+            <button type="button" class="stepper-btn" data-for="input-stufe6-count" data-delta="1">+</button>
+          </div>
         </div>
       </div>
     </div>
@@ -693,7 +710,11 @@ body.tf-active { padding-top: 48px; }
           <div class="adj-sublabel">über 1 Länge hinaus, je +10 s</div>
         </div>
         <div class="adj-control">
-          <input type="number" id="input-blaengen" value="0" min="0" max="20">
+          <div class="number-stepper">
+            <button type="button" class="stepper-btn" data-for="input-blaengen" data-delta="-1">−</button>
+            <input type="number" id="input-blaengen" value="0" min="0" max="20">
+            <button type="button" class="stepper-btn" data-for="input-blaengen" data-delta="1">+</button>
+          </div>
         </div>
       </div>
 
@@ -708,7 +729,11 @@ body.tf-active { padding-top: 48px; }
             <option value="1">+</option>
             <option value="-1">−</option>
           </select>
-          <input type="number" id="input-saugschlauch-count" value="0" min="0" max="10">
+          <div class="number-stepper">
+            <button type="button" class="stepper-btn" data-for="input-saugschlauch-count" data-delta="-1">−</button>
+            <input type="number" id="input-saugschlauch-count" value="0" min="0" max="10">
+            <button type="button" class="stepper-btn" data-for="input-saugschlauch-count" data-delta="1">+</button>
+          </div>
         </div>
       </div>
       <div id="adj-halteleine" class="adj-row hidden">
@@ -2480,6 +2505,19 @@ Screens.ergebnis = {
 // ════════════════════════════════════════════════════════
 // BOOT
 // ════════════════════════════════════════════════════════
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.stepper-btn');
+  if (!btn) return;
+  const input = document.getElementById(btn.dataset.for);
+  if (!input) return;
+  const delta = Number(btn.dataset.delta);
+  const min = input.min !== '' ? Number(input.min) : -Infinity;
+  const max = input.max !== '' ? Number(input.max) : Infinity;
+  input.value = Math.min(max, Math.max(min, (parseInt(input.value) || 0) + delta));
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  input.dispatchEvent(new Event('change', { bubbles: true }));
+});
+
 document.addEventListener('DOMContentLoaded', () => {
   TF.init();
   Screens.auswahl.init();

@@ -761,6 +761,7 @@ body.tf-active { padding-top: 48px; }
     </div>
   </div>
   <div class="screen-footer">
+    <button class="btn-secondary" id="btn-setup-back">← Zurück</button>
     <button class="btn-primary" id="btn-setup-weiter" disabled>Weiter →</button>
   </div>
 </div>
@@ -1578,6 +1579,7 @@ Screens.setup = (() => {
   return {
     init() {
       const btnWeiter = document.getElementById('btn-setup-weiter');
+      document.getElementById('btn-setup-back').addEventListener('click', () => Nav.back());
 
       updateUI = function() {
         const sel = readSelection();
@@ -1998,7 +2000,10 @@ Screens.einsatz = (() => {
 
   return {
     init() {
-      document.getElementById('btn-einsatz-back').addEventListener('click', () => Nav.back());
+      document.getElementById('btn-einsatz-back').addEventListener('click', () => {
+        if (eng && eng.state === 'running') { eng.stop(); SESSION.results.einsatz = eng.elapsed; }
+        Nav.back();
+      });
       document.getElementById('btn-einsatz-weiter').addEventListener('click', () => Nav.next());
 
       document.getElementById('einsatz-start').addEventListener('click', () => {
@@ -2118,7 +2123,10 @@ Screens.saugleitung = (() => {
 
   return {
     init() {
-      document.getElementById('btn-saug-back').addEventListener('click', () => Nav.back());
+      document.getElementById('btn-saug-back').addEventListener('click', () => {
+        if (eng && eng.state === 'running') { eng.stop(); SESSION.results.saugleitung = eng.elapsed; }
+        Nav.back();
+      });
       document.getElementById('btn-saug-weiter').addEventListener('click', () => Nav.next());
 
       document.getElementById('saug-start').addEventListener('click', () => {

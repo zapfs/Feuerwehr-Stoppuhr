@@ -1018,7 +1018,8 @@ function fmtMST(sec) {
 }
 
 function fmtSec(s) {
-  return s >= 60 ? `${fmtMS(s)} (${Math.round(s)} s)` : `${Math.round(s)} s`;
+  const t = Math.floor(s * 10) % 10;
+  return `${Math.floor(s)}.${t}`;
 }
 
 // ════════════════════════════════════════════════════════
@@ -1479,7 +1480,7 @@ Screens.setup = {
         const adj = readAdj();
         const em  = computeEinsatzMax(variante, adj);
         const sm  = computeSaugleitungMax(adj);
-        document.getElementById('ct-einsatz').textContent = `${em} s (${fmtMS(em)})`;
+        document.getElementById('ct-einsatz').textContent = `${em} s`;
         document.getElementById('ct-saugl').textContent   = `${sm} s`;
       } else {
         document.getElementById('ct-einsatz').textContent = '–';
@@ -1558,7 +1559,7 @@ Screens.knoten = (() => {
           </div>
           <span class="badge">max ${def.max} s</span>
         </div>
-        <div class="timer-display" id="kn-${def.id}-display">00:00.0</div>
+        <div class="timer-display" id="kn-${def.id}-display">0.0</div>
         <div class="timer-controls">
           <button class="btn-start btn-sm" id="kn-${def.id}-start">Start</button>
           <button class="btn-stop btn-sm hidden" id="kn-${def.id}-stop">Stop</button>
@@ -1592,7 +1593,7 @@ Screens.knoten = (() => {
         const eng = new TimerEngine({
           maxSeconds: def.max,
           onTick(el, st) {
-            display.textContent = fmtMST(el);
+            display.textContent = fmtSec(el);
             display.className = 'timer-display state-' + colorState(el, def.max);
           },
           onAnnounce() {},
@@ -1616,13 +1617,13 @@ Screens.knoten = (() => {
           SESSION.results.knoten[def.id] = el;
           const ok = el <= def.max;
           resultEl.innerHTML = ok
-            ? `<span class="result-ok">✓ ${fmtMST(el)}</span>`
-            : `<span class="result-warn">⚠ ${fmtMST(el)} (max ${def.max} s) – 5 Fehlerpunkte</span>`;
+            ? `<span class="result-ok">✓ ${fmtSec(el)} s</span>`
+            : `<span class="result-warn">⚠ ${fmtSec(el)} s (max ${def.max} s) – 5 Fehlerpunkte</span>`;
         });
         btnReset.addEventListener('click', async () => {
           if (!await confirmReset(`Zeit für ${def.label} wirklich zurücksetzen?`)) return;
           eng.reset();
-          display.textContent = '00:00.0';
+          display.textContent = '0.0';
           display.className = 'timer-display';
           btnReset.classList.add('hidden');
           btnStop.classList.add('hidden');
@@ -1634,15 +1635,15 @@ Screens.knoten = (() => {
         // Restore previously stopped time (when navigating back)
         const savedElapsed = SESSION.results.knoten[def.id];
         if (savedElapsed != null) {
-          display.textContent = fmtMST(savedElapsed);
+          display.textContent = fmtSec(savedElapsed);
           display.className = 'timer-display state-' + colorState(savedElapsed, def.max);
           btnStart.classList.add('hidden');
           btnStop.classList.add('hidden');
           btnReset.classList.remove('hidden');
           const ok = savedElapsed <= def.max;
           resultEl.innerHTML = ok
-            ? `<span class="result-ok">✓ ${fmtMST(savedElapsed)}</span>`
-            : `<span class="result-warn">⚠ ${fmtMST(savedElapsed)} (max ${def.max} s) – 5 Fehlerpunkte</span>`;
+            ? `<span class="result-ok">✓ ${fmtSec(savedElapsed)} s</span>`
+            : `<span class="result-warn">⚠ ${fmtSec(savedElapsed)} s (max ${def.max} s) – 5 Fehlerpunkte</span>`;
         }
       }
     },
@@ -1878,7 +1879,7 @@ Screens.einsatz = (() => {
       const v = SESSION.variante;
       document.getElementById('einsatz-variant-badge').textContent = CONFIG.variants[v].label;
       const max = SESSION.einsatzMax;
-      document.getElementById('einsatz-max-label').textContent = `Höchstzeit: ${max} s (${fmtMS(max)})`;
+      document.getElementById('einsatz-max-label').textContent = `Höchstzeit: ${max} s`;
 
       // Announcement times
       const annTimes = [60, 120];
@@ -1901,7 +1902,7 @@ Screens.einsatz = (() => {
         onTick(el, st) {
           const display = document.getElementById('einsatz-display');
           const overtime = el > max;
-          display.textContent = overtime ? '+' + fmtMST(el - max) : fmtMST(el);
+          display.textContent = overtime ? '+' + fmtSec(el - max) : fmtSec(el);
           display.className = 'timer-display state-' + colorState(el, max);
         },
         onAnnounce(t) {
@@ -1920,7 +1921,7 @@ Screens.einsatz = (() => {
       });
 
       const display = document.getElementById('einsatz-display');
-      display.textContent = '00:00.0';
+      display.textContent = '0.0';
       display.className = 'timer-display';
       document.getElementById('einsatz-start').classList.remove('hidden');
       document.getElementById('einsatz-stop').classList.add('hidden');
@@ -1930,7 +1931,7 @@ Screens.einsatz = (() => {
       const saved = SESSION.results.einsatz;
       if (saved != null) {
         const overtime = saved > max;
-        display.textContent = overtime ? '+' + fmtMST(saved - max) : fmtMST(saved);
+        display.textContent = overtime ? '+' + fmtSec(saved - max) : fmtSec(saved);
         display.className = 'timer-display state-' + colorState(saved, max);
         document.getElementById('einsatz-start').classList.add('hidden');
         document.getElementById('einsatz-stop').classList.add('hidden');
@@ -1942,7 +1943,7 @@ Screens.einsatz = (() => {
   function resetEngine() {
     if (eng) eng.reset();
     const display = document.getElementById('einsatz-display');
-    display.textContent = '00:00.0';
+    display.textContent = '0.0';
     display.className = 'timer-display';
     document.getElementById('einsatz-start').classList.remove('hidden');
     document.getElementById('einsatz-stop').classList.add('hidden');
@@ -1999,7 +2000,7 @@ Screens.saugleitung = (() => {
         onTick(el) {
           const display = document.getElementById('saug-display');
           const overtime = el > max;
-          display.textContent = overtime ? '+' + fmtMST(el - max) : fmtMST(el);
+          display.textContent = overtime ? '+' + fmtSec(el - max) : fmtSec(el);
           display.className = 'timer-display state-' + colorState(el, max);
         },
         onAnnounce(t) {
@@ -2012,7 +2013,7 @@ Screens.saugleitung = (() => {
       });
 
       const display = document.getElementById('saug-display');
-      display.textContent = '00:00.0';
+      display.textContent = '0.0';
       display.className = 'timer-display';
       document.getElementById('saug-start').classList.remove('hidden');
       document.getElementById('saug-stop').classList.add('hidden');
@@ -2022,7 +2023,7 @@ Screens.saugleitung = (() => {
       const saved = SESSION.results.saugleitung;
       if (saved != null) {
         const overtime = saved > max;
-        display.textContent = overtime ? '+' + fmtMST(saved - max) : fmtMST(saved);
+        display.textContent = overtime ? '+' + fmtSec(saved - max) : fmtSec(saved);
         display.className = 'timer-display state-' + colorState(saved, max);
         document.getElementById('saug-start').classList.add('hidden');
         document.getElementById('saug-stop').classList.add('hidden');
@@ -2034,7 +2035,7 @@ Screens.saugleitung = (() => {
   function resetSaug() {
     if (eng) eng.reset();
     const display = document.getElementById('saug-display');
-    display.textContent = '00:00.0';
+    display.textContent = '0.0';
     display.className = 'timer-display';
     document.getElementById('saug-start').classList.remove('hidden');
     document.getElementById('saug-stop').classList.add('hidden');
@@ -2147,7 +2148,7 @@ Screens.trockensaug = (() => {
       announceTimes: [],
       onTick(el) {
         const display = document.getElementById('ts-main-display');
-        display.textContent = fmtMST(el);
+        display.textContent = fmtSec(el);
         display.className = 'timer-display state-' + colorState(el, CONFIG.trockensaugMax);
       },
       onAnnounce() {},
@@ -2157,7 +2158,7 @@ Screens.trockensaug = (() => {
     subEng = null;
 
     const mainDisp = document.getElementById('ts-main-display');
-    mainDisp.textContent = '00:00.0';
+    mainDisp.textContent = '0.0';
     mainDisp.className = 'timer-display';
 
     const subDisp = document.getElementById('ts-sub-display');
@@ -2204,7 +2205,7 @@ Screens.ergebnis = {
       } else {
         const ok = elapsed <= def.max;
         if (!ok) knotenFP += 5;
-        tr.innerHTML = `<td>${def.label}</td><td>${fmtMST(elapsed)}</td><td>${def.max} s</td>
+        tr.innerHTML = `<td>${def.label}</td><td>${fmtSec(elapsed)} s</td><td>${def.max} s</td>
           <td class="${ok ? 'result-ok' : 'result-warn'}">${ok ? '✓' : '5 FP'}</td>`;
       }
       knotenBody.appendChild(tr);
@@ -2254,7 +2255,7 @@ Screens.ergebnis = {
     if (!eOk) allOk = false;
     einsatzBody.innerHTML = `<tr>
       <td>Variante ${v}</td>
-      <td>${ea != null ? fmtMST(ea) : '–'}</td>
+      <td>${ea != null ? fmtSec(ea) + ' s' : '–'}</td>
       <td>${em} s</td>
       <td class="${ea == null ? 'result-skip' : (eOk ? 'result-ok' : 'result-fail')}">${ea == null ? '–' : (eOk ? '✓' : '✗')}</td>
     </tr>`;
@@ -2270,7 +2271,7 @@ Screens.ergebnis = {
       if (!sOk) allOk = false;
       document.getElementById('erg-saug-body').innerHTML = `<tr>
         <td>Saugleitung kuppeln</td>
-        <td>${sa != null ? fmtMST(sa) : '–'}</td>
+        <td>${sa != null ? fmtSec(sa) + ' s' : '–'}</td>
         <td>${sm} s</td>
         <td class="${sa == null ? 'result-skip' : (sOk ? 'result-ok' : 'result-fail')}">${sa == null ? '–' : (sOk ? '✓' : '✗')}</td>
       </tr>`;
@@ -2281,7 +2282,7 @@ Screens.ergebnis = {
     const tsMainOk = ts.mainElapsed == null || ts.mainElapsed <= CONFIG.trockensaugMax;
     if (!tsMainOk) allOk = false;
     document.getElementById('erg-ts-body').innerHTML = `
-      <tr><td>Gesamtzeit</td><td>${ts.mainElapsed != null ? fmtMST(ts.mainElapsed) : '–'}</td><td class="${tsMainOk ? 'result-ok' : 'result-fail'}">${ts.mainElapsed == null ? '–' : (tsMainOk ? '✓' : '✗')}</td></tr>
+      <tr><td>Gesamtzeit</td><td>${ts.mainElapsed != null ? fmtSec(ts.mainElapsed) + ' s' : '–'}</td><td class="${tsMainOk ? 'result-ok' : 'result-fail'}">${ts.mainElapsed == null ? '–' : (tsMainOk ? '✓' : '✗')}</td></tr>
       <tr><td>Anzahl Versuche</td><td>${ts.versuche}</td><td></td></tr>
       <tr><td>Haltezeit 120 s</td><td>${ts.haltezeitBestanden ? 'Bestanden' : 'Nicht bestanden'}</td><td class="${ts.haltezeitBestanden ? 'result-ok' : 'result-fail'}">${ts.haltezeitBestanden ? '✓' : '✗'}</td></tr>
     `;

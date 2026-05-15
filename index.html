@@ -725,13 +725,9 @@ body.tf-active { padding-top: 48px; }
           <div class="adj-sublabel">von 4 abweichend, je ±10 s</div>
         </div>
         <div class="adj-control">
-          <select id="input-saugschlauch-sign" style="background:var(--c-surface2);color:var(--c-text);border:1px solid var(--c-border);border-radius:6px;padding:8px;font-size:1rem;">
-            <option value="1">+</option>
-            <option value="-1">−</option>
-          </select>
           <div class="number-stepper">
             <button type="button" class="stepper-btn" data-for="input-saugschlauch-count" data-delta="-1">−</button>
-            <input type="number" id="input-saugschlauch-count" value="0" min="0" max="10">
+            <input type="number" id="input-saugschlauch-count" value="0" min="-10" max="10">
             <button type="button" class="stepper-btn" data-for="input-saugschlauch-count" data-delta="1">+</button>
           </div>
         </div>
@@ -1586,8 +1582,8 @@ Screens.setup = (() => {
   function readAdj() {
     return {
       extraBLaengen:    parseInt(document.getElementById('input-blaengen').value) || 0,
-      saugschlauchCount:parseInt(document.getElementById('input-saugschlauch-count').value) || 0,
-      saugschlauchSign: parseInt(document.getElementById('input-saugschlauch-sign').value) || 1,
+      saugschlauchCount: Math.abs(parseInt(document.getElementById('input-saugschlauch-count').value) || 0),
+      saugschlauchSign:  (parseInt(document.getElementById('input-saugschlauch-count').value) || 0) >= 0 ? 1 : -1,
       ohneHalteleine:   document.getElementById('input-ohnehalteleine').checked,
       bSaugleitungII:   document.getElementById('input-bsaugl-ii').checked,
       bSaugleitungI:    document.getElementById('input-bsaugl-i').checked,
@@ -2025,8 +2021,14 @@ Screens.einsatz = (() => {
 
   return {
     init() {
-      document.getElementById('btn-einsatz-back').addEventListener('click', () => Nav.back());
-      document.getElementById('btn-einsatz-weiter').addEventListener('click', () => Nav.next());
+      const guardEinsatz = async (action) => {
+        if (eng && eng.state === 'running') {
+          if (!await confirmReset('Die Stoppuhr läuft noch. Seite wirklich verlassen?')) return;
+        }
+        action();
+      };
+      document.getElementById('btn-einsatz-back').addEventListener('click', () => guardEinsatz(() => Nav.back()));
+      document.getElementById('btn-einsatz-weiter').addEventListener('click', () => guardEinsatz(() => Nav.next()));
 
       document.getElementById('einsatz-start').addEventListener('click', () => {
         Audio.ensureCtx();
@@ -2485,6 +2487,7 @@ Screens.ergebnis = {
       const ts = r.trockensaug;
       const tsMainOk = ts.mainElapsed == null || ts.mainElapsed <= CONFIG.trockensaugMax;
       if (!tsMainOk) allOk = false;
+      if (ts.mainElapsed != null && !ts.haltezeitBestanden) allOk = false;
       document.getElementById('erg-ts-body').innerHTML = `
         <tr><td>Gesamtzeit</td><td>${ts.mainElapsed != null ? fmtSec(ts.mainElapsed) + ' s' : '–'}</td><td class="${tsMainOk ? 'result-ok' : 'result-fail'}">${ts.mainElapsed == null ? '–' : (tsMainOk ? '✓' : '✗')}</td></tr>
         <tr><td>Anzahl Versuche</td><td>${ts.versuche}</td><td></td></tr>

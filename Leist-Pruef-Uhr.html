@@ -926,10 +926,10 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
       </div>
     </div>
 
-    <div class="card" id="adj-card">
-      <div class="card-title">Zeitanpassungen</div>
+    <div class="card" id="adj-card-einsatz">
+      <div class="card-title">Zeitanpassungen – Einsatzübung</div>
 
-      <!-- Var I + III -->
+      <!-- Var I + III: B-Längen -->
       <div id="adj-blaengen" class="adj-row hidden">
         <div class="adj-label">
           Zusätzliche B-Leitungs-Längen
@@ -943,6 +943,11 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
           </div>
         </div>
       </div>
+      <!-- Var II: Dachverlastung (Einsatz) – wird per JS hierhin verschoben -->
+    </div>
+
+    <div class="card" id="adj-card-saugl">
+      <div class="card-title">Zeitanpassungen – Saugleitung kuppeln</div>
 
       <!-- Var II only -->
       <div id="adj-saugschlauch" class="adj-row hidden">
@@ -981,22 +986,24 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
       <div id="adj-bsaugl-i" class="adj-row hidden">
         <div class="adj-label">
           B-Saugleitung (KLF)
-          <div class="adj-sublabel">Saugleitung kuppeln −10 s</div>
+          <div class="adj-sublabel">−10 s</div>
         </div>
         <div class="adj-control">
           <input type="checkbox" id="input-bsaugl-i">
         </div>
       </div>
 
-      <!-- All variants -->
-      <div id="adj-dachverlastung" class="adj-row hidden">
-        <div class="adj-label">
-          Saugschläuche auf Fahrzeugdach
-          <div class="adj-sublabel" id="adj-dach-sublabel">+60 s</div>
-        </div>
-        <div class="adj-control">
-          <input type="checkbox" id="input-dachverlastung">
-        </div>
+      <!-- Var I/III: Dachverlastung (Saugleitung) – wird per JS hierhin verschoben -->
+    </div>
+
+    <!-- Dachverlastung-Zeile: wandert per JS je nach Variante in die richtige Karte -->
+    <div id="adj-dachverlastung" class="adj-row hidden">
+      <div class="adj-label">
+        Saugschläuche auf Fahrzeugdach
+        <div class="adj-sublabel" id="adj-dach-sublabel">+60 s</div>
+      </div>
+      <div class="adj-control">
+        <input type="checkbox" id="input-dachverlastung">
       </div>
     </div>
 
@@ -1856,8 +1863,15 @@ Screens.setup = (() => {
         document.getElementById('adj-bsaugl-ii').classList.toggle('hidden', !isII);
         document.getElementById('adj-bsaugl-i').classList.toggle('hidden', !(isI || isIII));
         document.getElementById('adj-dachverlastung').classList.toggle('hidden', !sel);
+
+        // Dachverlastung-Zeile physisch in die richtige Karte verschieben
+        if (sel) {
+          const dachRow = document.getElementById('adj-dachverlastung');
+          const targetCard = document.getElementById(isII ? 'adj-card-einsatz' : 'adj-card-saugl');
+          if (dachRow.parentElement !== targetCard) targetCard.appendChild(dachRow);
+        }
         document.getElementById('adj-dach-sublabel').textContent =
-          isII ? '+60 s (Einsatzübung)' : '+60 s (Saugleitung kuppeln)';
+          isII ? '+60 s' : '+60 s';
 
         document.getElementById('ct-saugl-row').classList.toggle('hidden', !sel);
 
@@ -1873,11 +1887,9 @@ Screens.setup = (() => {
 
       document.querySelectorAll('input[name=variante], input[name=aufbau]')
         .forEach(el => el.addEventListener('change', updateUI));
-      document.querySelectorAll('#adj-card input')
+      document.querySelectorAll('#adj-card-einsatz input, #adj-card-saugl input, #adj-dachverlastung input')
         .forEach(el => el.addEventListener('input', updateUI));
-      document.querySelectorAll('#adj-card input[type=checkbox]')
-        .forEach(el => el.addEventListener('change', updateUI));
-      document.querySelectorAll('#adj-card select')
+      document.querySelectorAll('#adj-card-einsatz input[type=checkbox], #adj-card-saugl input[type=checkbox], #adj-dachverlastung input[type=checkbox]')
         .forEach(el => el.addEventListener('change', updateUI));
 
       btnWeiter.addEventListener('click', async () => {
@@ -1932,7 +1944,8 @@ Screens.setup = (() => {
       const hilfe = SESSION.mode === 'hilfeleistung';
       document.getElementById('setup-aufbau-card').classList.toggle('hidden', !hilfe);
       document.getElementById('setup-variante-card').classList.toggle('hidden', hilfe);
-      document.getElementById('adj-card').classList.toggle('hidden', hilfe);
+      document.getElementById('adj-card-einsatz').classList.toggle('hidden', hilfe);
+      document.getElementById('adj-card-saugl').classList.toggle('hidden', hilfe);
       document.getElementById('ct-saugl-row').classList.toggle('hidden', hilfe);
       document.getElementById('ct-trocken-row').classList.toggle('hidden', hilfe);
       document.getElementById('setup-title-h1').textContent =
@@ -2292,12 +2305,7 @@ Screens.einsatz = (() => {
       // Announcement times
       const annTimes = hilfe
         ? CONFIG.aufbauten[SESSION.variante].announce.slice()
-        : (() => {
-            const a = [60, 120];
-            if (max > 120) a.push(180);
-            if (max > 180) a.push(240);
-            return a;
-          })();
+        : [60, 120, 180, 240, 300].filter(t => t <= max);
 
       const annEls = { 60: 'ann-einsatz-60', 120: 'ann-einsatz-120', 180: 'ann-einsatz-180', 240: 'ann-einsatz-240', 300: 'ann-einsatz-300' };
 

@@ -7,6 +7,9 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="LeisPruefUhr">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 <title>Feuerwehr-Stoppuhr</title>
 <style>
 :root {
@@ -2555,6 +2558,10 @@ document.addEventListener('DOMContentLoaded', () => {
   Screens.ergebnis.init();
   Nav.show('auswahl');
 });
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js');
+}
 </script>
 </body>
 </html>

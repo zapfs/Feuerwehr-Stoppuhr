@@ -559,6 +559,131 @@ body.tf-active { padding-top: 48px; }
   justify-content: center;
 }
 .result-warn { color: var(--c-warn-light); font-weight: 700; }
+
+/* ── Help overlay ───────────────────────────────────── */
+.help-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 600;
+  background: var(--c-bg);
+  display: flex;
+  flex-direction: column;
+}
+.help-overlay.hidden { display: none; }
+.help-header {
+  background: var(--c-surface);
+  border-bottom: 1px solid var(--c-border);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.help-header h2 { flex: 1; font-size: 1.1rem; font-weight: 600; }
+.btn-help-close {
+  background: none;
+  border: none;
+  color: var(--c-text);
+  font-size: 1.4rem;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  line-height: 1;
+}
+.btn-help-close:hover { background: var(--c-btn-hover); }
+.help-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.help-item {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.help-item summary {
+  padding: 14px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.help-item summary::-webkit-details-marker { display: none; }
+.help-item summary::after {
+  content: '›';
+  margin-left: auto;
+  font-size: 1.3rem;
+  color: var(--c-muted);
+  transition: transform 0.2s;
+  font-weight: 400;
+}
+.help-item[open] > summary::after { transform: rotate(90deg); }
+.help-item[open] > summary { border-bottom: 1px solid var(--c-border); }
+.help-content {
+  padding: 14px;
+  font-size: 0.88rem;
+  line-height: 1.65;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.help-content ul, .help-content ol {
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.help-note {
+  background: var(--c-surface2);
+  border-left: 3px solid var(--c-accent);
+  padding: 10px 12px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+.help-step {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.help-step-num {
+  background: var(--c-accent);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.78rem;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+}
+.btn-help-open {
+  background: none;
+  border: 1px solid var(--c-border);
+  color: var(--c-muted);
+  font-size: 0.9rem;
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-help-open:hover { background: var(--c-surface2); color: var(--c-text); }
 </style>
 </head>
 <body>
@@ -573,6 +698,85 @@ body.tf-active { padding-top: 48px; }
       <button class="btn-reset" id="confirm-yes">Ja, zurücksetzen</button>
       <button class="btn-secondary" id="confirm-no">Abbrechen</button>
     </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     HELP OVERLAY
+     ═══════════════════════════════════════════════════════ -->
+<div id="help-overlay" class="help-overlay hidden">
+  <div class="help-header">
+    <h2>ℹ️ Hilfe &amp; Bedienung</h2>
+    <button id="btn-help-close" class="btn-help-close" aria-label="Schließen">✕</button>
+  </div>
+  <div class="help-body">
+
+    <details class="help-item">
+      <summary>📱 Installation – iPhone / iPad (iOS)</summary>
+      <div class="help-content">
+        <div class="help-note">⚠ Nur mit <strong>Safari</strong> möglich. Andere Browser (Chrome, Firefox) unterstützen die Installation auf iOS nicht.</div>
+        <div class="help-step"><span class="help-step-num">1</span><span>Den App-Link in <strong>Safari</strong> öffnen.</span></div>
+        <div class="help-step"><span class="help-step-num">2</span><span>Unten in der Mitte auf das <strong>Teilen-Symbol</strong> tippen (Rechteck mit Pfeil ↑).</span></div>
+        <div class="help-step"><span class="help-step-num">3</span><span>Im Menü nach unten scrollen und <strong>„Zum Home-Bildschirm"</strong> antippen.</span></div>
+        <div class="help-step"><span class="help-step-num">4</span><span>Namen bestätigen und <strong>„Hinzufügen"</strong> tippen.</span></div>
+        <p>Die App startet danach im Vollbild – ohne Safari-Leiste – genau wie eine native App.</p>
+      </div>
+    </details>
+
+    <details class="help-item">
+      <summary>📱 Installation – Android (Chrome)</summary>
+      <div class="help-content">
+        <div class="help-step"><span class="help-step-num">1</span><span>Den App-Link in <strong>Chrome</strong> öffnen.</span></div>
+        <div class="help-step"><span class="help-step-num">2</span><span>Am unteren Rand erscheint ein Banner: <strong>„App installieren"</strong> → antippen.<br>Falls kein Banner erscheint: Menü (⋮ oben rechts) → <strong>„App installieren"</strong>.</span></div>
+        <div class="help-step"><span class="help-step-num">3</span><span><strong>„Installieren"</strong> im Dialog bestätigen.</span></div>
+        <p>Die App erscheint in der App-Übersicht und läuft im Vollbild ohne Browser-Leiste.</p>
+      </div>
+    </details>
+
+    <details class="help-item">
+      <summary>🔄 Offline-Nutzung &amp; Updates</summary>
+      <div class="help-content">
+        <p>Nach dem <strong>ersten Öffnen</strong> mit Internetverbindung ist die App vollständig <strong>offline nutzbar</strong> – auch ohne WLAN oder Mobilfunk im Einsatz.</p>
+        <p><strong>Updates</strong> werden automatisch im Hintergrund geladen, sobald das Gerät wieder online ist und die App geöffnet wird.</p>
+      </div>
+    </details>
+
+    <details class="help-item">
+      <summary>🔴 Löscheinsatz – Programmablauf</summary>
+      <div class="help-content">
+        <div class="help-step"><span class="help-step-num">1</span><span><strong>Setup:</strong> Variante (I / II / III), Stufe (1–6), Zeitanpassungen und Anzahl der Prüflinge für Testfragen eingeben.</span></div>
+        <div class="help-step"><span class="help-step-num">2</span><span><strong>Testfragen:</strong> Gruppenführer 10 min, Mannschaft Stufe 6 je 5 min – laufen parallel. Bestanden/Nicht bestanden je Timer setzen.</span></div>
+        <div class="help-step"><span class="help-step-num">3</span><span><strong>Knoten &amp; Stiche:</strong> 8 Einzeltimer. Zeitüberschreitung = <strong>2 Fehlerpunkte</strong> je Knoten/Stich.</span></div>
+        <div class="help-step"><span class="help-step-num">4</span><span><strong>Kuppeln der Saugleitung:</strong> Stoppuhr für den Saugleitungsaufbau. Zweiter Versuch mit Mannschaftshilfe möglich (Zeitlimit entfällt dann).</span></div>
+        <div class="help-step"><span class="help-step-num">5</span><span><strong>Trockensaugprobe:</strong> 2-Minuten-Haltezeit. 2. Versuch = <strong>5 Fehlerpunkte</strong>. Nicht bestanden → Prüfung unvollständig.</span></div>
+        <div class="help-step"><span class="help-step-num">6</span><span><strong>Einsatzübung:</strong> Hauptstoppuhr mit Höchstzeit und Minuten-Zeitansagen. Läuft auch weiter, wenn die Seite versehentlich verlassen wird.</span></div>
+        <div class="help-step"><span class="help-step-num">7</span><span><strong>Ergebnis:</strong> Alle Zeiten und Fehlerpunkte auf einen Blick. Gesamtstatus zeigt, ob alle Zeiten aufgezeichnet wurden.</span></div>
+      </div>
+    </details>
+
+    <details class="help-item">
+      <summary>🟢 Technische Hilfeleistung – Programmablauf</summary>
+      <div class="help-content">
+        <div class="help-step"><span class="help-step-num">1</span><span><strong>Setup:</strong> Aufbau A (Höchstzeit 300 s) oder Aufbau B (240 s), Stufe, Anzahl Prüflinge.</span></div>
+        <div class="help-step"><span class="help-step-num">2</span><span><strong>Testfragen:</strong> Wie beim Löscheinsatz – GF 10 min, Mannschaft Stufe 6 je 5 min.</span></div>
+        <div class="help-step"><span class="help-step-num">3</span><span><strong>Einsatzübung:</strong> Stoppuhr läuft bis zur Rückmeldung „Person befreit, an Rettungsdienst übergeben". Zeitansagen in Minutenschritten.</span></div>
+        <div class="help-step"><span class="help-step-num">4</span><span><strong>Ergebnis:</strong> Testfragen + Einsatzübung. Hinweis: Schutzleiterprüfung nach der Zeitmessung durchführen (nicht gestoppt).</span></div>
+        <div class="help-note">Knoten &amp; Stiche, Saugleitung und Trockensaugprobe entfallen bei der Technischen Hilfeleistung.</div>
+      </div>
+    </details>
+
+    <details class="help-item">
+      <summary>⏱ Fehlerpunkte &amp; Gesamtstatus</summary>
+      <div class="help-content">
+        <ul>
+          <li><strong>Knoten/Stich überschritten:</strong> 2 Fehlerpunkte je Knoten</li>
+          <li><strong>Trockensaugprobe – 2. Versuch:</strong> 5 Fehlerpunkte</li>
+          <li><strong>Trockensaugprobe nicht bestanden:</strong> Prüfung unvollständig</li>
+        </ul>
+        <p>Der <strong>Gesamtstatus</strong> am Ende zeigt, ob alle Zeiten vollständig aufgezeichnet wurden. Ob die Prüfung bestanden ist, hängt von weiteren Kriterien ab, die der Schiedsrichter separat bewertet.</p>
+      </div>
+    </details>
+
   </div>
 </div>
 
@@ -617,6 +821,7 @@ body.tf-active { padding-top: 48px; }
         </span>
       </button>
     </div>
+    <button id="btn-help-open" class="btn-help-open">ℹ️ Hilfe &amp; Bedienung</button>
   </div>
 </div>
 
@@ -1579,6 +1784,12 @@ Screens.auswahl = {
       .addEventListener('click', () => choose('loscheinsatz'));
     document.getElementById('btn-mode-hilfeleistung')
       .addEventListener('click', () => choose('hilfeleistung'));
+
+    const helpOverlay = document.getElementById('help-overlay');
+    document.getElementById('btn-help-open')
+      .addEventListener('click', () => helpOverlay.classList.remove('hidden'));
+    document.getElementById('btn-help-close')
+      .addEventListener('click', () => helpOverlay.classList.add('hidden'));
   },
 };
 

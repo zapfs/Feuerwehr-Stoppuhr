@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#1a1a1a">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -35,14 +35,28 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html, body {
+html {
   height: 100%;
   overflow: hidden;
+}
+body {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   background: var(--c-bg);
   color: var(--c-text);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 16px;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* ── App wrapper (sits below TF status bar) ─────────── */
+#app {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
 }
 
 /* ── Screen management ──────────────────────────────── */
@@ -83,6 +97,7 @@ html, body {
 }
 .screen-footer {
   padding: 12px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
   background: var(--c-surface);
   border-top: 1px solid var(--c-border);
   display: flex;
@@ -474,11 +489,7 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
 
 /* ── Global Testfragen status bar (parallel) ─────────── */
 #tf-status-bar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
+  flex-shrink: 0;
   background: var(--c-warn-light);
   color: #1a1a1a;
   padding: 8px 12px;
@@ -519,7 +530,7 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
   min-height: 36px;
   font-size: 0.85rem;
 }
-body.tf-active { padding-top: 56px; }
+/* tf-active: layout handled by #tf-status-bar in document flow */
 
 /* ── Responsive ──────────────────────────────────────── */
 @media (min-width: 600px) {
@@ -795,6 +806,8 @@ body.tf-active { padding-top: 56px; }
   </div>
   <button id="tf-status-goto" class="btn-sm">→ Öffnen</button>
 </div>
+
+<div id="app">
 
 <!-- ═══════════════════════════════════════════════════════
      SCREEN 0: AUSWAHL DER PRÜFUNGSART
@@ -1584,14 +1597,8 @@ const TF = {
 
     if (anyActive && !onTfScreen) {
       bar.classList.remove('hidden');
-      document.body.classList.add('tf-active');
-      requestAnimationFrame(() => {
-        document.body.style.paddingTop = bar.offsetHeight + 'px';
-      });
     } else {
       bar.classList.add('hidden');
-      document.body.classList.remove('tf-active');
-      document.body.style.paddingTop = '';
     }
 
     const gfRow = document.getElementById('tf-gf-status-row');
@@ -2779,5 +2786,7 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js');
 }
 </script>
+
+</div><!-- #app -->
 </body>
 </html>

@@ -519,7 +519,7 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
   min-height: 36px;
   font-size: 0.85rem;
 }
-body.tf-active { padding-top: 48px; }
+body.tf-active { padding-top: 56px; }
 
 /* ── Responsive ──────────────────────────────────────── */
 @media (min-width: 600px) {
@@ -1585,9 +1585,13 @@ const TF = {
     if (anyActive && !onTfScreen) {
       bar.classList.remove('hidden');
       document.body.classList.add('tf-active');
+      requestAnimationFrame(() => {
+        document.body.style.paddingTop = bar.offsetHeight + 'px';
+      });
     } else {
       bar.classList.add('hidden');
       document.body.classList.remove('tf-active');
+      document.body.style.paddingTop = '';
     }
 
     const gfRow = document.getElementById('tf-gf-status-row');

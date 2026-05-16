@@ -38,10 +38,12 @@
 html {
   height: 100%;
   overflow: hidden;
+  overscroll-behavior: none;
 }
 body {
   height: 100%;
   overflow: hidden;
+  overscroll-behavior: none;
   display: flex;
   flex-direction: column;
   background: var(--c-bg);
@@ -91,6 +93,7 @@ body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
   padding: 12px;
   display: flex;
   flex-direction: column;
@@ -606,6 +609,7 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
 .help-body {
   flex: 1;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
   padding: 12px;
   display: flex;
   flex-direction: column;

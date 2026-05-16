@@ -1,5 +1,5 @@
-const CACHE = 'leispruefuhr-v1';
-const ASSETS = ['./LeisPruefUhr.html'];
+const CACHE = 'leist-pruef-uhr-v1';
+const ASSETS = ['./Leist-Pruef-Uhr.html'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));

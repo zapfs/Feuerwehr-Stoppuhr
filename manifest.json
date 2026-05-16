@@ -1,9 +1,9 @@
 {
-  "name": "Feuerwehr-Stoppuhr",
-  "short_name": "LeisPruefUhr",
+  "name": "Leist-Prüf-Uhr",
+  "short_name": "Leist-Prüf-Uhr",
   "description": "Stoppuhr für Feuerwehr-Leistungsprüfungen Bayern",
   "lang": "de",
-  "start_url": "./LeisPruefUhr.html",
+  "start_url": "./Leist-Pruef-Uhr.html",
   "display": "standalone",
   "background_color": "#1a1a1a",
   "theme_color": "#1a1a1a",

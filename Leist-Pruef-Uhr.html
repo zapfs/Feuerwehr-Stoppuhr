@@ -55,12 +55,13 @@ body {
 #app {
   flex: 1;
   min-height: 0;
-  position: relative;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
 /* ── Screen management ──────────────────────────────── */
-.screen { display: none; flex-direction: column; position: absolute; inset: 0; }
+.screen { display: none; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
 .screen.active { display: flex; }
 
 /* ── Layout helpers ─────────────────────────────────── */

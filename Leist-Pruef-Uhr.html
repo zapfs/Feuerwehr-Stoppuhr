@@ -2016,6 +2016,20 @@ Screens.setup = (() => {
         : 'Leistungsprüfung „Die Gruppe im Löscheinsatz" – Bayern';
       updateUI();
     },
+
+    resetForm() {
+      document.querySelectorAll('input[name=variante], input[name=aufbau]')
+        .forEach(r => { r.checked = false; });
+      document.getElementById('input-gf-testfragen').checked = false;
+      document.getElementById('input-stufe6-count').value = '0';
+      document.getElementById('input-blaengen').value = '0';
+      document.getElementById('input-saugschlauch-count').value = '0';
+      document.getElementById('input-ohnehalteleine').checked = false;
+      document.getElementById('input-bsaugl-ii').checked = false;
+      document.getElementById('input-bsaugl-i').checked = false;
+      document.getElementById('input-dachverlastung').checked = false;
+      updateUI();
+    },
   };
 })();
 
@@ -2087,7 +2101,7 @@ Screens.knoten = (() => {
           resultEl.innerHTML = ok
             ? `<span class="result-ok">✓ ${fmtSec(el)} s</span>`
             : `<span class="result-warn">⚠ ${fmtSec(el)} s (max ${def.max} s) – 2 Fehlerpunkte</span>`;
-          btnOk.classList.remove('hidden');
+          btnOk.classList.toggle('hidden', ok);
         }
 
         btnStart.addEventListener('click', () => {
@@ -2176,7 +2190,7 @@ Screens.testfragen = (() => {
       resultEl.innerHTML = ok
         ? `<span class="result-ok">✓ ${fmtMST(el)}</span>`
         : `<span class="result-fail">✗ ${fmtMST(el)} (max ${fmtMS(max)})</span>`;
-      btnOkGF.classList.remove('hidden');
+      btnOkGF.classList.toggle('hidden', ok);
     });
     btnReset.addEventListener('click', async () => {
       if (!await confirmReset('Testfragen-Zeit (Gruppenführer) wirklich zurücksetzen?')) return;
@@ -2250,7 +2264,7 @@ Screens.testfragen = (() => {
         resultEl.innerHTML = ok
           ? `<span class="result-ok">✓ ${fmtMST(el)}</span>`
           : `<span class="result-fail">✗ ${fmtMST(el)} (max ${fmtMS(max)})</span>`;
-        btnOkM.classList.remove('hidden');
+        btnOkM.classList.toggle('hidden', ok);
       });
       btnReset.addEventListener('click', async () => {
         if (!await confirmReset(`Testfragen-Zeit (Teilnehmer ${i + 1}) wirklich zurücksetzen?`)) return;
@@ -2300,9 +2314,9 @@ Screens.testfragen = (() => {
       btnStart.classList.add('hidden');
       btnStop.classList.add('hidden');
       btnReset.classList.remove('hidden');
-      if (btnOkM) btnOkM.classList.remove('hidden');
       const el = eng.elapsed;
       const ok = el <= max;
+      if (btnOkM) btnOkM.classList.toggle('hidden', ok);
       resultEl.innerHTML = ok
         ? `<span class="result-ok">✓ ${fmtMST(el)}</span>`
         : `<span class="result-fail">✗ ${fmtMST(el)} (max ${fmtMS(max)})</span>`;
@@ -2339,9 +2353,9 @@ Screens.testfragen = (() => {
       btnStart.classList.add('hidden');
       btnStop.classList.add('hidden');
       btnReset.classList.remove('hidden');
-      if (btnOkGF) btnOkGF.classList.remove('hidden');
       const el = TF.engines.gf.elapsed;
       const ok = el <= max;
+      if (btnOkGF) btnOkGF.classList.toggle('hidden', ok);
       resultEl.innerHTML = ok
         ? `<span class="result-ok">✓ ${fmtMST(el)}</span>`
         : `<span class="result-fail">✗ ${fmtMST(el)} (max ${fmtMS(max)})</span>`;
@@ -2421,7 +2435,7 @@ Screens.einsatz = (() => {
         document.getElementById('einsatz-result').innerHTML = ok
           ? `<span class="result-ok">✓ ${fmtSec(el)} s</span>`
           : `<span class="result-warn">⚠ ${fmtSec(el)} s (max ${max} s) – Höchstzeit überschritten</span>`;
-        document.getElementById('einsatz-ok').classList.remove('hidden');
+        document.getElementById('einsatz-ok').classList.toggle('hidden', ok);
       });
       document.getElementById('einsatz-reset').addEventListener('click', async () => {
         if (!await confirmReset('Einsatzübungs-Zeit wirklich zurücksetzen?')) return;
@@ -2445,6 +2459,17 @@ Screens.einsatz = (() => {
     },
     activate() {
       const hilfe = SESSION.mode === 'hilfeleistung';
+
+      // Warn if any Testfragen timers are still running
+      const tfGfRunning = TF.engines.gf && TF.engines.gf.state === 'running';
+      const tfMannRunning = TF.engines.members.some(e => e && e.state === 'running');
+      if (tfGfRunning || tfMannRunning) {
+        confirmReset(
+          '⚠ Noch laufende Testfragen-Stoppuhren!\nVor der Einsatzübung müssen alle Sonderaufgaben (Testfragen, Knoten) abgeschlossen sein.',
+          { yesLabel: 'Trotzdem weiter', noLabel: 'Zurück' }
+        ).then(confirmed => { if (!confirmed) Nav.back(); });
+      }
+
       document.getElementById('einsatz-variant-badge').textContent = optionLabel();
       const max = SESSION.einsatzMax;
       document.getElementById('einsatz-max-label').textContent = `Höchstzeit: ${max} s`;
@@ -2525,7 +2550,7 @@ Screens.einsatz = (() => {
         document.getElementById('einsatz-result').innerHTML = ok
           ? `<span class="result-ok">✓ ${fmtSec(saved)} s</span>`
           : `<span class="result-warn">⚠ ${fmtSec(saved)} s (max ${max} s) – Höchstzeit überschritten</span>`;
-        document.getElementById('einsatz-ok').classList.remove('hidden');
+        document.getElementById('einsatz-ok').classList.toggle('hidden', ok);
       }
     },
   };
@@ -2577,7 +2602,7 @@ Screens.saugleitung = (() => {
         document.getElementById('saug-result').innerHTML = ok
           ? `<span class="result-ok">✓ ${fmtSec(el)} s</span>`
           : `<span class="result-warn">⚠ ${fmtSec(el)} s (max ${max} s) – Höchstzeit überschritten</span>`;
-        document.getElementById('saug-ok').classList.remove('hidden');
+        document.getElementById('saug-ok').classList.toggle('hidden', ok);
       });
       document.getElementById('saug-reset').addEventListener('click', async () => {
         if (!await confirmReset('Saugleitung-Zeit wirklich zurücksetzen?')) return;
@@ -2656,7 +2681,7 @@ Screens.saugleitung = (() => {
         document.getElementById('saug-result').innerHTML = ok
           ? `<span class="result-ok">✓ ${fmtSec(saved)} s</span>`
           : `<span class="result-warn">⚠ ${fmtSec(saved)} s (max ${max} s) – Höchstzeit überschritten</span>`;
-        document.getElementById('saug-ok').classList.remove('hidden');
+        document.getElementById('saug-ok').classList.toggle('hidden', ok);
       }
     },
   };
@@ -2710,7 +2735,7 @@ Screens.trockensaug = (() => {
         document.getElementById('ts-main-result').innerHTML = ok
           ? `<span class="result-ok">✓ ${fmtSec(el)} s</span>`
           : `<span class="result-warn">⚠ ${fmtSec(el)} s (max ${max} s)</span>`;
-        document.getElementById('ts-ok').classList.remove('hidden');
+        document.getElementById('ts-ok').classList.toggle('hidden', ok);
       });
       document.getElementById('ts-ok').addEventListener('click', async () => {
         const max = CONFIG.trockensaugMax;
@@ -2839,6 +2864,7 @@ Screens.ergebnis = {
       if (!await confirmReset('Neue Prüfung beginnen? Alle gestoppten Zeiten gehen verloren.')) return;
       SESSION = buildSession();
       TF.resetAll();
+      Screens.setup.resetForm();
       Nav.show('auswahl', { pushHistory: false });
       Nav.resetHistory();
     });

@@ -1,4 +1,4 @@
-const CACHE = 'leist-pruef-uhr-v6';
+const CACHE = 'leist-pruef-uhr-v7';
 const ASSETS = ['./Leist-Pruef-Uhr.html'];
 
 self.addEventListener('install', e => {

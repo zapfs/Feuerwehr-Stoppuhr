@@ -217,9 +217,11 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
 
 .timer-max-label {
   text-align: center;
-  font-size: 0.9rem;
-  color: var(--c-muted);
-  margin-top: 4px;
+  font-size: 1.15rem;
+  color: var(--c-accent);
+  font-weight: 700;
+  margin-top: 6px;
+  letter-spacing: 0.02em;
 }
 
 /* ── Timer controls row ──────────────────────────────── */
@@ -700,6 +702,52 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
   -webkit-tap-highlight-color: transparent;
 }
 .btn-help-open:hover { background: var(--c-surface2); color: var(--c-text); }
+
+/* ── TF bar blinkt rot wenn eine Zeit abgelaufen ist ── */
+#tf-status-bar.bar-exceeded {
+  background: var(--c-danger);
+  color: #fff;
+  animation: blink-bar 0.5s step-start infinite;
+}
+@keyframes blink-bar {
+  0%, 100% { background: var(--c-danger); }
+  50%       { background: #7f0000; }
+}
+#tf-status-bar.bar-exceeded .tf-status-time {
+  background: rgba(255,255,255,0.25);
+  animation: none;
+}
+#tf-status-bar.bar-exceeded #tf-status-goto {
+  background: rgba(255,255,255,0.25);
+  color: #fff;
+}
+
+/* ── Übung-ok Override-Button ────────────────────────── */
+.btn-ok-override {
+  background: var(--c-ok);
+  color: #fff;
+  font-size: 0.82rem;
+  padding: 8px 14px;
+  min-height: 36px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  width: 100%;
+  font-weight: 600;
+}
+.btn-ok-override:active { opacity: 0.75; }
+
+/* ── Ergebnis-Checkliste ─────────────────────────────── */
+.erg-check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--c-border);
+  font-size: 0.9rem;
+}
+.erg-check-row:last-child { border-bottom: none; }
+.erg-check-icon { font-size: 1rem; flex-shrink: 0; margin-top: 2px; }
+.erg-check-detail { color: var(--c-muted); font-size: 0.82rem; margin-top: 2px; }
 </style>
 </head>
 <body>
@@ -1083,12 +1131,16 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
   </div>
   <div class="screen-body">
     <div class="card">
-      <div class="timer-display" id="einsatz-display">00:00</div>
+      <div class="timer-display" id="einsatz-display">0</div>
       <div class="timer-max-label" id="einsatz-max-label"></div>
       <div class="timer-controls">
         <button class="btn-start" id="einsatz-start">Start</button>
         <button class="btn-stop hidden" id="einsatz-stop">Stop</button>
         <button class="btn-reset hidden" id="einsatz-reset">Zurücksetzen</button>
+      </div>
+      <div class="knoten-result hidden" id="einsatz-result"></div>
+      <div id="einsatz-ok-wrap" class="hidden mt-8">
+        <button class="btn-ok-override" id="einsatz-ok">✓ Übung ok setzen</button>
       </div>
     </div>
 
@@ -1126,12 +1178,16 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
   </div>
   <div class="screen-body">
     <div class="card">
-      <div class="timer-display" id="saug-display">00:00</div>
+      <div class="timer-display" id="saug-display">0</div>
       <div class="timer-max-label" id="saug-max-label"></div>
       <div class="timer-controls">
         <button class="btn-start" id="saug-start">Start</button>
         <button class="btn-stop hidden" id="saug-stop">Stop</button>
         <button class="btn-reset hidden" id="saug-reset">Zurücksetzen</button>
+      </div>
+      <div class="knoten-result hidden" id="saug-result"></div>
+      <div id="saug-ok-wrap" class="hidden mt-8">
+        <button class="btn-ok-override" id="saug-ok">✓ Übung ok setzen</button>
       </div>
     </div>
 
@@ -1159,12 +1215,16 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
   <div class="screen-body">
     <div class="card">
       <div class="card-title">Gesamtzeitfenster <span class="badge">max. 300 s</span></div>
-      <div class="timer-display" id="ts-main-display">00:00</div>
+      <div class="timer-display" id="ts-main-display">0</div>
       <div class="timer-max-label">300 s – mehrere Versuche erlaubt</div>
       <div class="timer-controls">
         <button class="btn-start" id="ts-main-start">Start</button>
         <button class="btn-stop hidden" id="ts-main-stop">Stop / Abschließen</button>
         <button class="btn-reset hidden" id="ts-main-reset">Zurücksetzen</button>
+      </div>
+      <div class="knoten-result hidden" id="ts-main-result"></div>
+      <div id="ts-ok-wrap" class="hidden mt-8">
+        <button class="btn-ok-override" id="ts-ok">✓ Übung ok setzen</button>
       </div>
     </div>
 
@@ -1173,6 +1233,7 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
         Haltezeit nach Motorstop <span class="badge">120 s</span>
       </div>
       <div class="versuch-badge" id="ts-versuch-label">Versuch 1</div>
+      <div id="ts-fp-label" class="hidden" style="color:var(--c-warn-light);font-weight:700;font-size:0.9rem;margin:4px 0">⚠ 5 Fehlerpunkte (2. Versuch)</div>
       <div class="timer-sub" id="ts-sub-display">02:00</div>
       <div class="timer-max-label">Unterdruck darf sich ≤ 0,1 bar verändern</div>
       <div class="timer-controls" id="ts-sub-controls">
@@ -1197,47 +1258,10 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
   </div>
   <div class="screen-body">
     <div class="gesamtergebnis" id="erg-gesamt"></div>
-
-    <div class="card" id="erg-knoten-card">
-      <div class="card-title">Knoten und Stiche</div>
-      <table class="result-table" id="erg-knoten-table">
-        <thead><tr><th>Funktion</th><th>Zeit</th><th>Max</th><th></th></tr></thead>
-        <tbody id="erg-knoten-body"></tbody>
-      </table>
-    </div>
-
-    <div class="card hidden" id="erg-tf-card">
-      <div class="card-title">Testfragen</div>
-      <table class="result-table">
-        <thead><tr><th>Funktion</th><th>Zeit</th><th>Max</th><th></th></tr></thead>
-        <tbody id="erg-tf-body"></tbody>
-      </table>
-    </div>
-
     <div class="card">
-      <div class="card-title">Einsatzübung</div>
-      <table class="result-table">
-        <thead><tr><th>Beschreibung</th><th>Zeit</th><th>Max</th><th></th></tr></thead>
-        <tbody id="erg-einsatz-body"></tbody>
-      </table>
+      <div class="card-title">Aufgezeichnete Zeiten</div>
+      <div id="erg-checklist"></div>
     </div>
-
-    <div class="card hidden" id="erg-saug-card">
-      <div class="card-title">Saugleitung kuppeln</div>
-      <table class="result-table">
-        <thead><tr><th>Beschreibung</th><th>Zeit</th><th>Max</th><th></th></tr></thead>
-        <tbody id="erg-saug-body"></tbody>
-      </table>
-    </div>
-
-    <div class="card" id="erg-ts-card">
-      <div class="card-title">Trockensaugprobe</div>
-      <table class="result-table">
-        <thead><tr><th>Beschreibung</th><th>Wert</th><th></th></tr></thead>
-        <tbody id="erg-ts-body"></tbody>
-      </table>
-    </div>
-
     <div class="card hidden" id="erg-schutzleiter-card">
       <div class="card-title">Nach der Zeitmessung</div>
       <div class="text-muted">⚡ Schutzleiterprüfung an den verwendeten Geräten
@@ -1363,13 +1387,11 @@ function fmtMS(sec) {
 function fmtMST(sec) {
   const m = Math.floor(sec / 60);
   const s = Math.floor(sec % 60);
-  const t = Math.floor((sec * 10) % 10);
-  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${t}`;
+  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
 
 function fmtSec(s) {
-  const t = Math.floor(s * 10) % 10;
-  return `${Math.floor(s)}.${t}`;
+  return String(Math.floor(s));
 }
 
 // ════════════════════════════════════════════════════════
@@ -1608,8 +1630,13 @@ const TF = {
 
     if (anyActive && !onTfScreen) {
       bar.classList.remove('hidden');
+      const anyExceededRunning =
+        (gfActive && this.engines.gf.elapsed >= CONFIG.testfragenGF) ||
+        runningMembers.some(({ e }) => e.elapsed >= CONFIG.testfragenMann);
+      bar.classList.toggle('bar-exceeded', anyExceededRunning);
     } else {
       bar.classList.add('hidden');
+      bar.classList.remove('bar-exceeded');
     }
 
     const gfRow = document.getElementById('tf-gf-status-row');
@@ -1693,13 +1720,15 @@ const TF = {
 // ════════════════════════════════════════════════════════
 // CONFIRM HELPER – custom in-page modal (replaces window.confirm)
 // ════════════════════════════════════════════════════════
-function confirmReset(message) {
+function confirmReset(message, { yesLabel = 'Ja, zurücksetzen', noLabel = 'Abbrechen' } = {}) {
   return new Promise(resolve => {
     const overlay = document.getElementById('confirm-overlay');
     const msgEl   = document.getElementById('confirm-msg');
     const btnYes  = document.getElementById('confirm-yes');
     const btnNo   = document.getElementById('confirm-no');
-    msgEl.textContent = message;
+    msgEl.textContent  = message;
+    btnYes.textContent = yesLabel;
+    btnNo.textContent  = noLabel;
     overlay.classList.remove('hidden');
     btnYes.addEventListener('click', () => { overlay.classList.add('hidden'); resolve(true);  }, { once: true });
     btnNo.addEventListener( 'click', () => { overlay.classList.add('hidden'); resolve(false); }, { once: true });
@@ -1974,15 +2003,18 @@ Screens.knoten = (() => {
             <div class="knoten-label">${def.label}</div>
             <div class="text-muted">${def.sublabel}</div>
           </div>
-          <span class="badge">max ${def.max} s</span>
         </div>
-        <div class="timer-display" id="kn-${def.id}-display">0.0</div>
+        <div class="timer-display" id="kn-${def.id}-display">0</div>
+        <div class="timer-max-label">max ${def.max} s</div>
         <div class="timer-controls">
           <button class="btn-start btn-sm" id="kn-${def.id}-start">Start</button>
           <button class="btn-stop btn-sm hidden" id="kn-${def.id}-stop">Stop</button>
           <button class="btn-reset btn-sm hidden" id="kn-${def.id}-reset">↺</button>
         </div>
         <div class="knoten-result" id="kn-${def.id}-result"></div>
+        <div id="kn-${def.id}-ok-wrap" class="hidden mt-4">
+          <button class="btn-ok-override" id="kn-${def.id}-ok">✓ Übung ok setzen</button>
+        </div>
       `;
       body.appendChild(div);
     }
@@ -2016,12 +2048,24 @@ Screens.knoten = (() => {
         });
         engines[def.id] = eng;
 
+        const btnOkWrap = document.getElementById(`kn-${def.id}-ok-wrap`);
+        const btnOk     = document.getElementById(`kn-${def.id}-ok`);
+
+        function showResult(el) {
+          const ok = el <= def.max;
+          resultEl.innerHTML = ok
+            ? `<span class="result-ok">✓ ${fmtSec(el)} s</span>`
+            : `<span class="result-warn">⚠ ${fmtSec(el)} s (max ${def.max} s) – 2 Fehlerpunkte</span>`;
+          btnOkWrap.classList.remove('hidden');
+        }
+
         btnStart.addEventListener('click', () => {
           Audio.ensureCtx();
           eng.start();
           btnStart.classList.add('hidden');
           btnStop.classList.remove('hidden');
           btnReset.classList.add('hidden');
+          btnOkWrap.classList.add('hidden');
           resultEl.textContent = '';
         });
         btnStop.addEventListener('click', () => {
@@ -2031,21 +2075,31 @@ Screens.knoten = (() => {
           btnReset.classList.remove('hidden');
           const el = eng.elapsed;
           SESSION.results.knoten[def.id] = el;
-          const ok = el <= def.max;
-          resultEl.innerHTML = ok
-            ? `<span class="result-ok">✓ ${fmtSec(el)} s</span>`
-            : `<span class="result-warn">⚠ ${fmtSec(el)} s (max ${def.max} s) – 2 Fehlerpunkte</span>`;
+          showResult(el);
         });
         btnReset.addEventListener('click', async () => {
           if (!await confirmReset(`Zeit für ${def.label} wirklich zurücksetzen?`)) return;
           eng.reset();
-          display.textContent = '0.0';
+          display.textContent = '0';
           display.className = 'timer-display';
           btnReset.classList.add('hidden');
           btnStop.classList.add('hidden');
           btnStart.classList.remove('hidden');
+          btnOkWrap.classList.add('hidden');
           resultEl.textContent = '';
           delete SESSION.results.knoten[def.id];
+        });
+        btnOk.addEventListener('click', async () => {
+          const overrideTime = def.max - 1;
+          if (!await confirmReset(
+            `Zeit auf ${overrideTime} s setzen (1 s unter Höchstzeit)?\nNur verwenden, wenn die Zeit versehentlich zu spät gestoppt wurde.`,
+            { yesLabel: 'Ja, ok setzen' }
+          )) return;
+          SESSION.results.knoten[def.id] = overrideTime;
+          display.textContent = fmtSec(overrideTime);
+          display.className = 'timer-display state-ok';
+          resultEl.innerHTML = `<span class="result-ok">✓ ${fmtSec(overrideTime)} s (ok gesetzt)</span>`;
+          btnOkWrap.classList.add('hidden');
         });
 
         // Restore previously stopped time (when navigating back)
@@ -2056,10 +2110,7 @@ Screens.knoten = (() => {
           btnStart.classList.add('hidden');
           btnStop.classList.add('hidden');
           btnReset.classList.remove('hidden');
-          const ok = savedElapsed <= def.max;
-          resultEl.innerHTML = ok
-            ? `<span class="result-ok">✓ ${fmtSec(savedElapsed)} s</span>`
-            : `<span class="result-warn">⚠ ${fmtSec(savedElapsed)} s (max ${def.max} s) – 2 Fehlerpunkte</span>`;
+          showResult(savedElapsed);
         }
       }
     },
@@ -2097,7 +2148,7 @@ Screens.testfragen = (() => {
     btnReset.addEventListener('click', async () => {
       if (!await confirmReset('Testfragen-Zeit (Gruppenführer) wirklich zurücksetzen?')) return;
       TF.resetGF();
-      display.textContent = '00:00.0';
+      display.textContent = '00:00';
       display.className = 'timer-display';
       btnStart.classList.remove('hidden');
       btnStop.classList.add('hidden');
@@ -2152,7 +2203,7 @@ Screens.testfragen = (() => {
       btnReset.addEventListener('click', async () => {
         if (!await confirmReset(`Testfragen-Zeit (Teilnehmer ${i + 1}) wirklich zurücksetzen?`)) return;
         TF.resetMember(i);
-        display.textContent = '00:00.0';
+        display.textContent = '00:00';
         display.className = 'timer-display';
         btnStart.classList.remove('hidden');
         btnStop.classList.add('hidden');
@@ -2195,7 +2246,7 @@ Screens.testfragen = (() => {
       btnStop.classList.add('hidden');
       btnReset.classList.add('hidden');
       resultEl.textContent = '';
-      display.textContent = '00:00.0';
+      display.textContent = '00:00';
       display.className = 'timer-display';
     }
   }
@@ -2230,7 +2281,7 @@ Screens.testfragen = (() => {
       btnStop.classList.add('hidden');
       btnReset.classList.add('hidden');
       resultEl.textContent = '';
-      display.textContent = '00:00.0';
+      display.textContent = '00:00';
       display.className = 'timer-display';
     }
   }
@@ -2282,18 +2333,44 @@ Screens.einsatz = (() => {
         eng && eng.start();
         document.getElementById('einsatz-start').classList.add('hidden');
         document.getElementById('einsatz-stop').classList.remove('hidden');
+        document.getElementById('einsatz-result').classList.add('hidden');
+        document.getElementById('einsatz-ok-wrap').classList.add('hidden');
       });
       document.getElementById('einsatz-stop').addEventListener('click', () => {
         eng && eng.stop();
         document.getElementById('einsatz-stop').classList.add('hidden');
         document.getElementById('einsatz-start').classList.add('hidden');
         document.getElementById('einsatz-reset').classList.remove('hidden');
-        SESSION.results.einsatz = eng.elapsed;
+        const el = eng.elapsed;
+        SESSION.results.einsatz = el;
+        const max = SESSION.einsatzMax;
+        const ok = el <= max;
+        const resultEl = document.getElementById('einsatz-result');
+        resultEl.classList.remove('hidden');
+        resultEl.innerHTML = ok
+          ? `<span class="result-ok">✓ ${fmtSec(el)} s</span>`
+          : `<span class="result-warn">⚠ ${fmtSec(el)} s (max ${max} s) – Höchstzeit überschritten</span>`;
+        document.getElementById('einsatz-ok-wrap').classList.remove('hidden');
       });
       document.getElementById('einsatz-reset').addEventListener('click', async () => {
         if (!await confirmReset('Einsatzübungs-Zeit wirklich zurücksetzen?')) return;
         resetEngine();
         SESSION.results.einsatz = null;
+      });
+      document.getElementById('einsatz-ok').addEventListener('click', async () => {
+        const max = SESSION.einsatzMax;
+        const overrideTime = max - 1;
+        if (!await confirmReset(
+          `Zeit auf ${overrideTime} s setzen (1 s unter Höchstzeit)?\nNur verwenden, wenn die Zeit versehentlich zu spät gestoppt wurde.`,
+          { yesLabel: 'Ja, ok setzen' }
+        )) return;
+        SESSION.results.einsatz = overrideTime;
+        const display = document.getElementById('einsatz-display');
+        display.textContent = fmtSec(overrideTime);
+        display.className = 'timer-display state-ok';
+        const resultEl = document.getElementById('einsatz-result');
+        resultEl.innerHTML = `<span class="result-ok">✓ ${fmtSec(overrideTime)} s (ok gesetzt)</span>`;
+        document.getElementById('einsatz-ok-wrap').classList.add('hidden');
       });
     },
     activate() {
@@ -2357,11 +2434,13 @@ Screens.einsatz = (() => {
       });
 
       const display = document.getElementById('einsatz-display');
-      display.textContent = '0.0';
+      display.textContent = '0';
       display.className = 'timer-display';
       document.getElementById('einsatz-start').classList.remove('hidden');
       document.getElementById('einsatz-stop').classList.add('hidden');
       document.getElementById('einsatz-reset').classList.add('hidden');
+      document.getElementById('einsatz-result').classList.add('hidden');
+      document.getElementById('einsatz-ok-wrap').classList.add('hidden');
 
       // Restore previously stopped time (when navigating back after stopping)
       const saved = SESSION.results.einsatz;
@@ -2372,6 +2451,13 @@ Screens.einsatz = (() => {
         document.getElementById('einsatz-start').classList.add('hidden');
         document.getElementById('einsatz-stop').classList.add('hidden');
         document.getElementById('einsatz-reset').classList.remove('hidden');
+        const ok = saved <= max;
+        const resultEl = document.getElementById('einsatz-result');
+        resultEl.classList.remove('hidden');
+        resultEl.innerHTML = ok
+          ? `<span class="result-ok">✓ ${fmtSec(saved)} s</span>`
+          : `<span class="result-warn">⚠ ${fmtSec(saved)} s (max ${max} s) – Höchstzeit überschritten</span>`;
+        document.getElementById('einsatz-ok-wrap').classList.remove('hidden');
       }
     },
   };
@@ -2379,11 +2465,13 @@ Screens.einsatz = (() => {
   function resetEngine() {
     if (eng) eng.reset();
     const display = document.getElementById('einsatz-display');
-    display.textContent = '0.0';
+    display.textContent = '0';
     display.className = 'timer-display';
     document.getElementById('einsatz-start').classList.remove('hidden');
     document.getElementById('einsatz-stop').classList.add('hidden');
     document.getElementById('einsatz-reset').classList.add('hidden');
+    document.getElementById('einsatz-result').classList.add('hidden');
+    document.getElementById('einsatz-ok-wrap').classList.add('hidden');
     // Reset announcement highlights
     ['ann-einsatz-60','ann-einsatz-120','ann-einsatz-180','ann-einsatz-240','ann-einsatz-300'].forEach(id => {
       const el = document.getElementById(id);
@@ -2406,18 +2494,44 @@ Screens.saugleitung = (() => {
         eng && eng.start();
         document.getElementById('saug-start').classList.add('hidden');
         document.getElementById('saug-stop').classList.remove('hidden');
+        document.getElementById('saug-result').classList.add('hidden');
+        document.getElementById('saug-ok-wrap').classList.add('hidden');
       });
       document.getElementById('saug-stop').addEventListener('click', () => {
         eng && eng.stop();
         document.getElementById('saug-stop').classList.add('hidden');
         document.getElementById('saug-start').classList.add('hidden');
         document.getElementById('saug-reset').classList.remove('hidden');
-        SESSION.results.saugleitung = eng.elapsed;
+        const el = eng.elapsed;
+        SESSION.results.saugleitung = el;
+        const max = SESSION.saugleitungMax;
+        const ok = el <= max;
+        const resultEl = document.getElementById('saug-result');
+        resultEl.classList.remove('hidden');
+        resultEl.innerHTML = ok
+          ? `<span class="result-ok">✓ ${fmtSec(el)} s</span>`
+          : `<span class="result-warn">⚠ ${fmtSec(el)} s (max ${max} s) – Höchstzeit überschritten</span>`;
+        document.getElementById('saug-ok-wrap').classList.remove('hidden');
       });
       document.getElementById('saug-reset').addEventListener('click', async () => {
         if (!await confirmReset('Saugleitung-Zeit wirklich zurücksetzen?')) return;
         resetSaug();
         SESSION.results.saugleitung = null;
+      });
+      document.getElementById('saug-ok').addEventListener('click', async () => {
+        const max = SESSION.saugleitungMax;
+        const overrideTime = max - 1;
+        if (!await confirmReset(
+          `Zeit auf ${overrideTime} s setzen (1 s unter Höchstzeit)?\nNur verwenden, wenn die Zeit versehentlich zu spät gestoppt wurde.`,
+          { yesLabel: 'Ja, ok setzen' }
+        )) return;
+        SESSION.results.saugleitung = overrideTime;
+        const display = document.getElementById('saug-display');
+        display.textContent = fmtSec(overrideTime);
+        display.className = 'timer-display state-ok';
+        const resultEl = document.getElementById('saug-result');
+        resultEl.innerHTML = `<span class="result-ok">✓ ${fmtSec(overrideTime)} s (ok gesetzt)</span>`;
+        document.getElementById('saug-ok-wrap').classList.add('hidden');
       });
     },
     activate() {
@@ -2456,11 +2570,13 @@ Screens.saugleitung = (() => {
       });
 
       const display = document.getElementById('saug-display');
-      display.textContent = '0.0';
+      display.textContent = '0';
       display.className = 'timer-display';
       document.getElementById('saug-start').classList.remove('hidden');
       document.getElementById('saug-stop').classList.add('hidden');
       document.getElementById('saug-reset').classList.add('hidden');
+      document.getElementById('saug-result').classList.add('hidden');
+      document.getElementById('saug-ok-wrap').classList.add('hidden');
 
       // Restore previously stopped time (when navigating back)
       const saved = SESSION.results.saugleitung;
@@ -2471,6 +2587,13 @@ Screens.saugleitung = (() => {
         document.getElementById('saug-start').classList.add('hidden');
         document.getElementById('saug-stop').classList.add('hidden');
         document.getElementById('saug-reset').classList.remove('hidden');
+        const ok = saved <= max;
+        const resultEl = document.getElementById('saug-result');
+        resultEl.classList.remove('hidden');
+        resultEl.innerHTML = ok
+          ? `<span class="result-ok">✓ ${fmtSec(saved)} s</span>`
+          : `<span class="result-warn">⚠ ${fmtSec(saved)} s (max ${max} s) – Höchstzeit überschritten</span>`;
+        document.getElementById('saug-ok-wrap').classList.remove('hidden');
       }
     },
   };
@@ -2478,11 +2601,13 @@ Screens.saugleitung = (() => {
   function resetSaug() {
     if (eng) eng.reset();
     const display = document.getElementById('saug-display');
-    display.textContent = '0.0';
+    display.textContent = '0';
     display.className = 'timer-display';
     document.getElementById('saug-start').classList.remove('hidden');
     document.getElementById('saug-stop').classList.add('hidden');
     document.getElementById('saug-reset').classList.add('hidden');
+    document.getElementById('saug-result').classList.add('hidden');
+    document.getElementById('saug-ok-wrap').classList.add('hidden');
     const ann60 = document.getElementById('ann-saug-60');
     ann60.style.background = ''; ann60.style.color = '';
   }
@@ -2515,7 +2640,31 @@ Screens.trockensaug = (() => {
         document.getElementById('ts-main-start').classList.add('hidden');
         document.getElementById('ts-main-reset').classList.remove('hidden');
         document.getElementById('ts-motor-stop').disabled = true;
-        SESSION.results.trockensaug.mainElapsed = mainEng.elapsed;
+        const el = mainEng.elapsed;
+        SESSION.results.trockensaug.mainElapsed = el;
+        const max = CONFIG.trockensaugMax;
+        const ok = el <= max;
+        const resultEl = document.getElementById('ts-main-result');
+        resultEl.classList.remove('hidden');
+        resultEl.innerHTML = ok
+          ? `<span class="result-ok">✓ ${fmtSec(el)} s</span>`
+          : `<span class="result-warn">⚠ ${fmtSec(el)} s (max ${max} s)</span>`;
+        document.getElementById('ts-ok-wrap').classList.remove('hidden');
+      });
+      document.getElementById('ts-ok').addEventListener('click', async () => {
+        const max = CONFIG.trockensaugMax;
+        const overrideTime = max - 1;
+        if (!await confirmReset(
+          `Zeit auf ${overrideTime} s setzen (1 s unter Höchstzeit)?\nNur verwenden, wenn die Zeit versehentlich zu spät gestoppt wurde.`,
+          { yesLabel: 'Ja, ok setzen' }
+        )) return;
+        SESSION.results.trockensaug.mainElapsed = overrideTime;
+        const display = document.getElementById('ts-main-display');
+        display.textContent = fmtSec(overrideTime);
+        display.className = 'timer-display state-ok';
+        const resultEl = document.getElementById('ts-main-result');
+        resultEl.innerHTML = `<span class="result-ok">✓ ${fmtSec(overrideTime)} s (ok gesetzt)</span>`;
+        document.getElementById('ts-ok-wrap').classList.add('hidden');
       });
 
       document.getElementById('ts-main-reset').addEventListener('click', async () => {
@@ -2532,6 +2681,7 @@ Screens.trockensaug = (() => {
         versuch++;
         SESSION.results.trockensaug.versuche = versuch;
         document.getElementById('ts-versuch-label').textContent = `Versuch ${versuch}`;
+        document.getElementById('ts-fp-label').classList.toggle('hidden', versuch < 2);
 
         if (subEng) subEng.reset();
         subEng = new TimerEngine({
@@ -2600,8 +2750,11 @@ Screens.trockensaug = (() => {
     subEng = null;
 
     const mainDisp = document.getElementById('ts-main-display');
-    mainDisp.textContent = '0.0';
+    mainDisp.textContent = '0';
     mainDisp.className = 'timer-display';
+    document.getElementById('ts-main-result').classList.add('hidden');
+    document.getElementById('ts-ok-wrap').classList.add('hidden');
+    document.getElementById('ts-fp-label').classList.add('hidden');
 
     const subDisp = document.getElementById('ts-sub-display');
     subDisp.textContent = '02:00';
@@ -2635,132 +2788,78 @@ Screens.ergebnis = {
     const hilfe = SESSION.mode === 'hilfeleistung';
     const hasSaug = !hilfe && CONFIG.variants[SESSION.variante]?.hasSaugleitung;
     document.getElementById('erg-variant-badge').textContent = optionLabel();
+    document.getElementById('erg-schutzleiter-card').classList.toggle('hidden', !hilfe);
 
-    let totalFP = 0;
+    const checklist = document.getElementById('erg-checklist');
+    checklist.innerHTML = '';
+    const missing = [];
 
-    // Knoten – nur Löscheinsatz; Zeitüberschreitung → 2 Fehlerpunkte, kein Fail
-    document.getElementById('erg-knoten-card').classList.toggle('hidden', hilfe);
-    if (!hilfe) {
-      const knotenBody = document.getElementById('erg-knoten-body');
-      knotenBody.innerHTML = '';
-      let knotenFP = 0;
-      for (const def of CONFIG.knotenDefs) {
-        const elapsed = r.knoten[def.id];
-        const tr = document.createElement('tr');
-        if (elapsed == null) {
-          tr.innerHTML = `<td>${def.label}</td><td class="result-skip">–</td><td>${def.max} s</td><td class="result-skip">–</td>`;
-        } else {
-          const ok = elapsed <= def.max;
-          if (!ok) knotenFP += 2;
-          tr.innerHTML = `<td>${def.label}</td><td>${fmtSec(elapsed)} s</td><td>${def.max} s</td>
-            <td class="${ok ? 'result-ok' : 'result-warn'}">${ok ? '✓' : '2 FP'}</td>`;
-        }
-        knotenBody.appendChild(tr);
-      }
-      if (knotenFP > 0) {
-        const fpRow = document.createElement('tr');
-        fpRow.innerHTML = `<td colspan="3" style="padding-top:6px"><strong>Fehlerpunkte Knoten gesamt:</strong></td><td class="result-warn"><strong>${knotenFP}</strong></td>`;
-        knotenBody.appendChild(fpRow);
-        totalFP += knotenFP;
-      }
+    function addRow(label, done, detail = '') {
+      const div = document.createElement('div');
+      div.className = 'erg-check-row';
+      div.innerHTML =
+        `<span class="erg-check-icon">${done ? '✅' : '⬜'}</span>` +
+        `<span><div>${label}</div>${detail ? `<div class="erg-check-detail">${detail}</div>` : ''}</span>`;
+      checklist.appendChild(div);
     }
 
     // Testfragen
-    const tfCard = document.getElementById('erg-tf-card');
-    const hasTF = SESSION.gfTestfragen || SESSION.stufe6Count > 0;
-    tfCard.classList.toggle('hidden', !hasTF);
-    if (hasTF) {
-      const tfBody = document.getElementById('erg-tf-body');
-      tfBody.innerHTML = '';
-      if (SESSION.gfTestfragen) {
-        const gf = r.testfragenGF;
-        const tfGFOk = gf == null || gf <= CONFIG.testfragenGF;
-        tfBody.innerHTML += `<tr>
-          <td>Gruppenführer</td>
-          <td>${gf != null ? fmtMST(gf) : '–'}</td>
-          <td>${fmtMS(CONFIG.testfragenGF)}</td>
-          <td class="${gf == null ? 'result-skip' : (tfGFOk ? 'result-ok' : 'result-fail')}">${gf == null ? '–' : (tfGFOk ? '✓' : '✗')}</td>
-        </tr>`;
-      }
-      for (let i = 0; i < SESSION.stufe6Count; i++) {
-        const ma = r.testfragenMembers[i];
-        const maOk = ma == null || ma <= CONFIG.testfragenMann;
-        tfBody.innerHTML += `<tr>
-          <td>Stufe-6-Teilnehmer ${i + 1}</td>
-          <td>${ma != null ? fmtMST(ma) : '–'}</td>
-          <td>${fmtMS(CONFIG.testfragenMann)}</td>
-          <td class="${ma == null ? 'result-skip' : (maOk ? 'result-ok' : 'result-fail')}">${ma == null ? '–' : (maOk ? '✓' : '✗')}</td>
-        </tr>`;
+    if (SESSION.gfTestfragen) {
+      const gf = r.testfragenGF;
+      if (gf == null) missing.push('Testfragen GF');
+      addRow('Testfragen – Gruppenführer', gf != null, gf != null ? `${fmtMS(gf)} (max 10:00)` : '');
+    }
+    for (let i = 0; i < SESSION.stufe6Count; i++) {
+      const ma = r.testfragenMembers[i];
+      if (ma == null) missing.push(`Testfragen Teilnehmer ${i + 1}`);
+      addRow(`Testfragen – Stufe-6-Teilnehmer ${i + 1}`, ma != null, ma != null ? `${fmtMS(ma)} (max 05:00)` : '');
+    }
+
+    // Knoten – nur Löscheinsatz
+    if (!hilfe) {
+      for (const def of CONFIG.knotenDefs) {
+        const el = r.knoten[def.id];
+        if (el == null) missing.push(def.label);
+        let detail = '';
+        if (el != null) {
+          detail = `${fmtSec(el)} s (max ${def.max} s)`;
+          if (el > def.max) detail += ' – 2 Fehlerpunkte';
+        }
+        addRow(`${def.label} – ${def.sublabel}`, el != null, detail);
       }
     }
 
     // Einsatzübung
-    const einsatzBody = document.getElementById('erg-einsatz-body');
-    const em = SESSION.einsatzMax;
     const ea = r.einsatz;
-    const eOk = ea == null || ea <= em;
-    einsatzBody.innerHTML = `<tr>
-      <td>${optionLabel()}</td>
-      <td>${ea != null ? fmtSec(ea) + ' s' : '–'}</td>
-      <td>${em} s</td>
-      <td class="${ea == null ? 'result-skip' : (eOk ? 'result-ok' : 'result-fail')}">${ea == null ? '–' : (eOk ? '✓' : '✗')}</td>
-    </tr>`;
+    if (ea == null) missing.push('Einsatzübung');
+    addRow('Einsatzübung', ea != null,
+      ea != null ? `${fmtSec(ea)} s (max ${SESSION.einsatzMax} s)` : '');
 
-    // Saugleitung kuppeln
-    const saugCard = document.getElementById('erg-saug-card');
-    saugCard.classList.toggle('hidden', !hasSaug);
+    // Saugleitung & Trockensaugprobe
     if (hasSaug) {
-      const sm = SESSION.saugleitungMax;
       const sa = r.saugleitung;
-      const sOk = sa == null || sa <= sm;
-      document.getElementById('erg-saug-body').innerHTML = `<tr>
-        <td>Saugleitung kuppeln</td>
-        <td>${sa != null ? fmtSec(sa) + ' s' : '–'}</td>
-        <td>${sm} s</td>
-        <td class="${sa == null ? 'result-skip' : (sOk ? 'result-ok' : 'result-fail')}">${sa == null ? '–' : (sOk ? '✓' : '✗')}</td>
-      </tr>`;
-    }
+      if (sa == null) missing.push('Saugleitung kuppeln');
+      addRow('Saugleitung kuppeln', sa != null,
+        sa != null ? `${fmtSec(sa)} s (max ${SESSION.saugleitungMax} s)` : '');
 
-    // Trockensaugprobe – nur wenn hasSaugleitung; 2. Versuch → 5 FP
-    document.getElementById('erg-ts-card').classList.toggle('hidden', !hasSaug);
-    if (hasSaug) {
       const ts = r.trockensaug;
-      const tsMainOk = ts.mainElapsed == null || ts.mainElapsed <= CONFIG.trockensaugMax;
-      const tsFP = ts.versuche > 1 ? 5 : 0;
-      if (tsFP > 0) totalFP += tsFP;
-      document.getElementById('erg-ts-body').innerHTML = `
-        <tr><td>Gesamtzeit</td><td>${ts.mainElapsed != null ? fmtSec(ts.mainElapsed) + ' s' : '–'}</td><td class="${tsMainOk ? 'result-ok' : 'result-fail'}">${ts.mainElapsed == null ? '–' : (tsMainOk ? '✓' : '✗')}</td></tr>
-        <tr><td>Anzahl Versuche</td><td>${ts.versuche}</td><td class="${tsFP > 0 ? 'result-warn' : ''}">${tsFP > 0 ? '5 FP (2. Versuch)' : (ts.versuche === 1 ? '✓' : '–')}</td></tr>
-        <tr><td>Haltezeit 120 s</td><td>${ts.haltezeitBestanden ? 'Bestanden' : 'Nicht bestanden'}</td><td class="${ts.haltezeitBestanden ? 'result-ok' : 'result-fail'}">${ts.haltezeitBestanden ? '✓' : '✗'}</td></tr>
-      `;
-    }
-
-    // Schutzleiterprüfung-Hinweis – nur Hilfeleistung
-    document.getElementById('erg-schutzleiter-card').classList.toggle('hidden', !hilfe);
-
-    // Gesamtstatus: wurden alle Zeiten aufgezeichnet?
-    const missing = [];
-    if (r.einsatz == null) missing.push('Einsatzübung');
-    if (!hilfe) {
-      if (CONFIG.knotenDefs.some(d => r.knoten[d.id] == null)) missing.push('Knoten');
-      if (hasSaug) {
-        if (r.saugleitung == null) missing.push('Saugleitung');
-        if (r.trockensaug.mainElapsed == null) missing.push('Trockensaugprobe');
+      if (ts.mainElapsed == null) missing.push('Trockensaugprobe');
+      let tsDetail = '';
+      if (ts.mainElapsed != null) {
+        tsDetail = `${fmtSec(ts.mainElapsed)} s`;
+        if (ts.versuche > 1) tsDetail += ` · ${ts.versuche} Versuche · 5 Fehlerpunkte`;
+        tsDetail += ts.haltezeitBestanden ? ' · Haltezeit ✓' : ' · Haltezeit nicht bestanden';
       }
-    }
-    if (SESSION.gfTestfragen && r.testfragenGF == null) missing.push('Testfragen GF');
-    for (let i = 0; i < SESSION.stufe6Count; i++) {
-      if (r.testfragenMembers[i] == null) { missing.push('Testfragen Mannschaft'); break; }
+      addRow('Trockensaugprobe', ts.mainElapsed != null, tsDetail);
     }
 
     const gesamt = document.getElementById('erg-gesamt');
-    const fpStr = totalFP > 0 ? ` · ${totalFP} Fehlerpunkte` : '';
     if (missing.length === 0) {
       gesamt.className = 'gesamtergebnis vollstaendig';
-      gesamt.textContent = `✓ Alle Zeiten aufgezeichnet${fpStr}`;
+      gesamt.textContent = '✓ Alle Zeiten aufgezeichnet';
     } else {
       gesamt.className = 'gesamtergebnis unvollstaendig';
-      gesamt.textContent = `⚠ Fehlende Zeiten: ${missing.join(', ')}${fpStr}`;
+      gesamt.textContent = `⬜ ${missing.length} Zeit${missing.length > 1 ? 'en fehlen' : ' fehlt'}`;
     }
   },
 };

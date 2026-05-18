@@ -827,36 +827,45 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
     <details class="help-item">
       <summary>🔴 Löscheinsatz – Programmablauf</summary>
       <div class="help-content">
-        <div class="help-step"><span class="help-step-num">1</span><span><strong>Setup:</strong> Variante (I / II / III), Stufe (1–6), Zeitanpassungen und Anzahl der Prüflinge für Testfragen eingeben.</span></div>
-        <div class="help-step"><span class="help-step-num">2</span><span><strong>Testfragen:</strong> Gruppenführer 10 min, Mannschaft Stufe 6 je 5 min – laufen parallel. Bestanden/Nicht bestanden je Timer setzen.</span></div>
-        <div class="help-step"><span class="help-step-num">3</span><span><strong>Knoten &amp; Stiche:</strong> 8 Einzeltimer. Zeitüberschreitung = <strong>2 Fehlerpunkte</strong> je Knoten/Stich.</span></div>
+        <div class="help-step"><span class="help-step-num">1</span><span><strong>Setup:</strong> Variante (I / II / III), Testfragen aktivieren (GF und/oder Stufe-6-Prüflinge), Zeitanpassungen eingeben. Die berechneten Höchstzeiten werden sofort angezeigt.</span></div>
+        <div class="help-step"><span class="help-step-num">2</span><span><strong>Testfragen:</strong> GF 10 min, Stufe-6-Prüflinge je 5 min – laufen parallel zur restlichen Prüfung. Die Statusleiste oben zeigt die verbleibende Zeit (orange = 30 s Warnung, rot = überschritten).</span></div>
+        <div class="help-step"><span class="help-step-num">3</span><span><strong>Knoten &amp; Stiche:</strong> 8 Einzeltimer. Ergebnis erscheint direkt nach dem Stoppen. Zeitüberschreitung = <strong>2 Fehlerpunkte</strong> je Knoten/Stich.</span></div>
         <div class="help-step"><span class="help-step-num">4</span><span><strong>Kuppeln der Saugleitung:</strong> Stoppuhr für den Saugleitungsaufbau. Zweiter Versuch mit Mannschaftshilfe möglich (Zeitlimit entfällt dann).</span></div>
-        <div class="help-step"><span class="help-step-num">5</span><span><strong>Trockensaugprobe:</strong> 2-Minuten-Haltezeit. 2. Versuch = <strong>5 Fehlerpunkte</strong>. Nicht bestanden → Prüfung unvollständig.</span></div>
-        <div class="help-step"><span class="help-step-num">6</span><span><strong>Einsatzübung:</strong> Hauptstoppuhr mit Höchstzeit und Minuten-Zeitansagen. Läuft auch weiter, wenn die Seite versehentlich verlassen wird.</span></div>
-        <div class="help-step"><span class="help-step-num">7</span><span><strong>Ergebnis:</strong> Alle Zeiten und Fehlerpunkte auf einen Blick. Gesamtstatus zeigt, ob alle Zeiten aufgezeichnet wurden.</span></div>
+        <div class="help-step"><span class="help-step-num">5</span><span><strong>Trockensaugprobe:</strong> Hauptstoppuhr + 2-Minuten-Haltezeitkontrolle. 2. Versuch nötig = <strong>5 Fehlerpunkte</strong>.</span></div>
+        <div class="help-step"><span class="help-step-num">6</span><span><strong>Einsatzübung:</strong> Hauptstoppuhr mit Höchstzeit und Minuten-Zeitansagen. Läuft weiter, wenn die Seite verlassen wird. Beim Betreten erscheint eine Warnung, wenn noch Testfragen-Timer laufen.</span></div>
+        <div class="help-step"><span class="help-step-num">7</span><span><strong>Ergebnis:</strong> Checkliste aller Abschnitte (✅ aufgezeichnet / ⬜ fehlt). Fehlerpunkte stehen inline bei den jeweiligen Timern.</span></div>
       </div>
     </details>
 
     <details class="help-item">
       <summary>🟢 Technische Hilfeleistung – Programmablauf</summary>
       <div class="help-content">
-        <div class="help-step"><span class="help-step-num">1</span><span><strong>Setup:</strong> Aufbau A (Höchstzeit 300 s) oder Aufbau B (240 s), Stufe, Anzahl Prüflinge.</span></div>
-        <div class="help-step"><span class="help-step-num">2</span><span><strong>Testfragen:</strong> Wie beim Löscheinsatz – GF 10 min, Mannschaft Stufe 6 je 5 min.</span></div>
-        <div class="help-step"><span class="help-step-num">3</span><span><strong>Einsatzübung:</strong> Stoppuhr läuft bis zur Rückmeldung „Person befreit, an Rettungsdienst übergeben". Zeitansagen in Minutenschritten.</span></div>
-        <div class="help-step"><span class="help-step-num">4</span><span><strong>Ergebnis:</strong> Testfragen + Einsatzübung. Hinweis: Schutzleiterprüfung nach der Zeitmessung durchführen (nicht gestoppt).</span></div>
+        <div class="help-step"><span class="help-step-num">1</span><span><strong>Setup:</strong> Aufbau A (Höchstzeit 300 s) oder Aufbau B (240 s), Testfragen aktivieren.</span></div>
+        <div class="help-step"><span class="help-step-num">2</span><span><strong>Testfragen:</strong> GF 10 min, Stufe-6-Prüflinge je 5 min – wie beim Löscheinsatz.</span></div>
+        <div class="help-step"><span class="help-step-num">3</span><span><strong>Einsatzübung:</strong> Stoppuhr läuft bis zur Rückmeldung „Person befreit, an Rettungsdienst übergeben". Zeitansagen in Minutenschritten. Warnung, wenn noch Testfragen-Timer laufen.</span></div>
+        <div class="help-step"><span class="help-step-num">4</span><span><strong>Ergebnis:</strong> Checkliste Testfragen + Einsatzübung. Hinweis: Schutzleiterprüfung nach der Zeitmessung durchführen (nicht gestoppt).</span></div>
         <div class="help-note">Knoten &amp; Stiche, Saugleitung und Trockensaugprobe entfallen bei der Technischen Hilfeleistung.</div>
       </div>
     </details>
 
     <details class="help-item">
-      <summary>⏱ Fehlerpunkte &amp; Gesamtstatus</summary>
+      <summary>✓ OK – Korrektur bei Vertippen</summary>
+      <div class="help-content">
+        <p>Jeder Timer zeigt nach dem Stoppen sein Ergebnis direkt an. Hat der Schiedsrichter sich <strong>beim Stoppen vertippt</strong> und die Zeit liegt über der Höchstzeit, erscheint ein kleiner <strong>✓ OK</strong>-Button neben dem Ergebnis.</p>
+        <p>Ein Tipp darauf setzt die Zeit auf <strong>Höchstzeit − 1 s</strong> (mit Bestätigungsabfrage). Das Ergebnis zeigt danach das normale „✓"-Ergebnis – ohne sichtbaren Hinweis auf die Korrektur.</p>
+        <div class="help-note">Der ✓ OK-Button erscheint <strong>nur</strong> bei Überschreitung der Höchstzeit, nicht bei korrekten Zeiten.</div>
+      </div>
+    </details>
+
+    <details class="help-item">
+      <summary>⏱ Fehlerpunkte &amp; Ergebnis</summary>
       <div class="help-content">
         <ul>
-          <li><strong>Knoten/Stich überschritten:</strong> 2 Fehlerpunkte je Knoten</li>
-          <li><strong>Trockensaugprobe – 2. Versuch:</strong> 5 Fehlerpunkte</li>
-          <li><strong>Trockensaugprobe nicht bestanden:</strong> Prüfung unvollständig</li>
+          <li><strong>Knoten/Stich überschritten:</strong> 2 Fehlerpunkte je Knoten – erscheint direkt beim Timer</li>
+          <li><strong>Trockensaugprobe – 2. Versuch:</strong> 5 Fehlerpunkte – erscheint direkt beim Timer</li>
         </ul>
-        <p>Der <strong>Gesamtstatus</strong> am Ende zeigt, ob alle Zeiten vollständig aufgezeichnet wurden. Ob die Prüfung bestanden ist, hängt von weiteren Kriterien ab, die der Schiedsrichter separat bewertet.</p>
+        <p>Die <strong>Ergebnisseite</strong> zeigt eine Checkliste aller Abschnitte. Ob die Prüfung bestanden ist, bewertet der Schiedsrichter anhand der aufgezeichneten Zeiten und Fehlerpunkte nach den Prüfungsrichtlinien.</p>
+        <p>„<strong>Neue Prüfung</strong>" setzt alle Zeiten <em>und</em> alle Setup-Einstellungen zurück – der nächste Start beginnt wieder auf dem Auswahlbildschirm.</p>
       </div>
     </details>
 

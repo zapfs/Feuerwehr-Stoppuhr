@@ -60,8 +60,8 @@ Nach der ersten Installation (mit Internetverbindung) ist die App **vollständig
 ### Startbildschirm – Prüfungsart wählen
 
 Beim Start wird gefragt, welche Prüfung durchgeführt wird:
-- **Löscheinsatz** – Die Gruppe im Löscheinsatz
-- **Technische Hilfeleistung** – Die Gruppe im Hilfeleistungseinsatz
+- **🔴 Löscheinsatz** – Die Gruppe im Löscheinsatz
+- **🟢 Technische Hilfeleistung** – Die Gruppe im Hilfeleistungseinsatz
 
 ---
 
@@ -70,75 +70,87 @@ Beim Start wird gefragt, welche Prüfung durchgeführt wird:
 Hier werden alle Parameter für die Prüfung eingestellt.
 
 #### Löscheinsatz
-- **Variante** wählen: Variante I (Saugbetrieb), Variante II (Überdruckbetrieb), Variante III (Saugbetrieb mit Steigrohr)
-- **Stufe** wählen (1–6)
-- **Zeitanpassungen** (optionale Zu-/Abschläge): B-Länge Saugleitung, Dachverlastung, weitere
-- **Prüflinge** für Testfragen eintragen (Gruppenführer + ggf. Mannschaft Stufe 6)
+- **Variante** wählen: I (Saugbetrieb), II (Überdruckbetrieb), III (Saugbetrieb mit Steigrohr)
+- **Testfragen** aktivieren: Gruppenführer (10 min) und/oder Anzahl Stufe-6-Prüflinge (je 5 min)
+- **Zeitanpassungen** (optionale Zu-/Abschläge je nach Variante): B-Länge Saugleitung, abweichende Schlauchlänge, Halteleine, Dachverlastung u. a.
+- Berechnete Höchstzeiten werden sofort angezeigt
 
 #### Hilfeleistung
-- **Aufbau** wählen: Aufbau A (Höchstzeit 300 s) oder Aufbau B (Höchstzeit 240 s)
-- **Stufe** und **Prüflinge** wie beim Löscheinsatz
+- **Aufbau** wählen: A (Höchstzeit 300 s) oder B (Höchstzeit 240 s)
+- **Testfragen** wie beim Löscheinsatz
+- Keine Zeitanpassungen
 
-Alle Zahlenfelder haben **− / +**-Tasten zum schnellen Anpassen ohne Tastatur.
+---
+
+### Testfragen-Statusleiste
+
+Während die Testfragen-Timer laufen, zeigt eine **Statusleiste oben** auf jeder Seite die verbleibende Zeit an:
+- **Orange blinkend**: 30 Sekunden vor Ablauf der Höchstzeit
+- **Rot blinkend**: Höchstzeit überschritten
+- Tippen auf **„→ Öffnen"** springt direkt zum Testfragen-Screen
 
 ---
 
 ### Testfragen (Stufen 1–6)
 
-- **Gruppenführer:** 10 Minuten Countdown
-- **Mannschaft Stufe 6:** je 5 Minuten pro Prüfling (laufen parallel)
+- **Gruppenführer:** 10-Minuten-Countdown
+- **Mannschaft Stufe 6:** je 5 Minuten pro Prüfling (laufen parallel zueinander und zur übrigen Prüfung)
 - Akustische Zeitansagen bei 60 s, 30 s, 10 s Restzeit
-- Start/Stopp und Neustart für jeden Timer separat
-- **Bestanden / Nicht bestanden** je Timer manuell setzen
+- Start / Stopp / Zurücksetzen für jeden Timer separat
+- Ergebnis wird inline angezeigt; bei Überschreitung erscheint ein **✓ OK**-Button zur nachträglichen Korrektur (falls der Schiedsrichter sich verstoppt hat)
 
 ---
 
-### Knoten und Stiche (nur Löscheinsatz)
+### Knoten und Stiche *(nur Löscheinsatz)*
 
-- Acht Einzeltimer (einer pro Knoten/Stich) mit individuellem Zeitlimit
-- Je Timer: Starten, Stoppen, Bestanden/Nicht-bestanden markieren
-- Überschreitung des Zeitlimits → **2 Fehlerpunkte** pro Knoten
-
----
-
-### Kuppeln der Saugleitung (nur Löscheinsatz)
-
-- Stoppuhr für den Saugleitungsaufbau
-- Zeitlimit abhängig von Variante und Zeitanpassungen
-- Zweiter Versuch möglich (Mannschaft hilft → Zeitlimit entfällt)
+- 8 Einzeltimer (einer pro Knoten/Stich) mit individuellem Zeitlimit
+- Ergebnis erscheint direkt nach dem Stoppen: Zeit in Sekunden, bei Überschreitung **+2 Fehlerpunkte**
+- Bei Überschreitung: **✓ OK**-Button für nachträgliche Korrektur
 
 ---
 
-### Trockensaugprobe (nur Löscheinsatz)
+### Kuppeln der Saugleitung *(nur Löscheinsatz)*
 
-- 2-Minuten-Countdown (Haltezeitprüfung)
-- **2 Minuten halten**: kein Fehlerpunkt
-- **2. Versuch notwendig**: 5 Fehlerpunkte
-- **Nicht bestanden**: Prüfung nicht abgeschlossen
+- Stoppuhr für den Saugleitungsaufbau mit variantenabhängigem Zeitlimit
+- Zweiter Versuch mit Mannschaftshilfe möglich (Zeitlimit entfällt dann)
 
 ---
 
-### Einsatzübung (beide Prüfungen)
+### Trockensaugprobe *(nur Löscheinsatz)*
 
-- Zentrale Stoppuhr mit Höchstzeit-Anzeige
-- Akustische Zeitansagen (Minuten-Ansagen, Sprache Deutsch)
-- **Läuft im Hintergrund weiter**, auch wenn zur vorherigen Seite navigiert wird
-- Beim Verlassen der Seite während laufender Uhr: Sicherheitsabfrage
+- Hauptstoppuhr + 2-Minuten-Haltezeitkontrolle
+- 2. Versuch nötig → **5 Fehlerpunkte**
+- Bei Überschreitung der Hauptstoppuhr: **✓ OK**-Button für nachträgliche Korrektur
+
+---
+
+### Einsatzübung *(beide Prüfungsarten)*
+
+- Zentrale Stoppuhr mit prominenter Höchstzeit-Anzeige
+- Akustische Zeitansagen in Minutenschritten (Sprachausgabe Deutsch)
+- Läuft **im Hintergrund weiter**, auch wenn zur vorherigen Seite navigiert wird; beim Verlassen während laufender Uhr erscheint eine Sicherheitsabfrage
+- **Warnung** beim Betreten des Screens, wenn noch Testfragen-Timer laufen (alle Sonderaufgaben müssen vor der Einsatzübung abgeschlossen sein)
+- Bei Überschreitung der Höchstzeit: **✓ OK**-Button für nachträgliche Korrektur
 
 #### Hilfeleistung-Zusatz
-- Hinweis: **Schutzleiterprüfung** nach der Zeitmessung durchführen (nicht gestoppt)
+- Hinweis: **Schutzleiterprüfung** nach der Zeitmessung durchführen (wird nicht gestoppt)
 
 ---
 
 ### Ergebnis / Bericht
 
-Zusammenfassung der gesamten Prüfung:
+Abschlusszusammenfassung der Prüfung:
 
-- Zeiten aller Abschnitte auf einen Blick
-- **Fehlerpunkte** (Knoten, Trockensaugprobe)
-- **Gesamtstatus:** „Alle Zeiten aufgezeichnet" oder Hinweis auf fehlende Abschnitte
-- „**Neue Prüfung**"-Button (mit Sicherheitsabfrage) → zurück zum Startbildschirm
-- „**← Zurück**"-Button zum Korrigieren
+- **Checkliste** aller Abschnitte: ✅ Zeit aufgezeichnet / ⬜ Zeit fehlt
+- **Fehlerpunkte** werden inline bei jedem betroffenen Timer angezeigt (nicht kumuliert)
+- **„← Zurück"**-Button zum Korrigieren einzelner Zeiten
+- **„Neue Prüfung"**-Button (mit Sicherheitsabfrage) → setzt alle Zeiten **und** alle Setup-Einstellungen zurück, zurück zum Startbildschirm
+
+---
+
+## ✓ OK – Korrektur-Button
+
+Jeder Timer besitzt einen kleinen **✓ OK**-Button, der ausschließlich erscheint, wenn die Höchstzeit **überschritten** wurde. Er ermöglicht dem Schiedsrichter, die Zeit nachträglich auf Höchstzeit − 1 s zu setzen, wenn er sich beim Stoppen vertippt hat. Nach der Korrektur zeigt der Timer das normale Ergebnis – ohne sichtbaren Hinweis auf die Korrektur.
 
 ---
 
@@ -156,7 +168,7 @@ Jeder Schiedsrichter öffnet den Link einmal mit Internetverbindung und installi
 
 ## Technische Hinweise
 
-- Keine Installation auf einem Server notwendig
-- Läuft komplett im Browser – keine Daten werden übertragen
+- Keine Server-Installation notwendig – läuft komplett im Browser
+- Keine Daten werden übertragen oder gespeichert
 - Getestet mit Safari (iOS) und Chrome (Android)
-- Sprache: Deutsch (Zeitansagen per Sprachausgabe)
+- Sprache: Deutsch (Zeitansagen per Web Speech API)

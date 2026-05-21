@@ -827,33 +827,55 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
     </details>
 
     <details class="help-item">
-      <summary>🔁 App aktualisieren – alte Version erscheint noch</summary>
+      <summary>🔁 Update – iPhone / iPad (iOS)</summary>
       <div class="help-content">
-        <p>Die App speichert sich selbst im Cache, damit sie offline funktioniert. Nach einem Update erscheint die neue Version deshalb erst nach einem vollständigen Neustart.</p>
+        <div class="help-note">Die App speichert sich im Cache für den Offline-Betrieb. Das Update läuft im Hintergrund – es wird aber erst nach einem vollständigen Neustart aktiv.</div>
 
-        <p><strong>📱 iPhone / iPad – normaler Weg:</strong></p>
-        <div class="help-step"><span class="help-step-num">1</span><span>App über das Home-Bildschirm-Symbol öffnen (Internetverbindung nötig).</span></div>
-        <div class="help-step"><span class="help-step-num">2</span><span>Ca. 5 Sekunden warten – Update wird im Hintergrund geladen.</span></div>
-        <div class="help-step"><span class="help-step-num">3</span><span>App <strong>vollständig schließen</strong>: von unten nach oben wischen → App-Karte wegwischen.</span></div>
-        <div class="help-step"><span class="help-step-num">4</span><span>App erneut öffnen → neue Version ist aktiv.</span></div>
+        <p><strong>Schritt 1 – normaler Weg:</strong></p>
+        <div class="help-step"><span class="help-step-num">1</span><span>App über das Home-Bildschirm-Symbol öffnen (<strong>Internetverbindung nötig</strong>).</span></div>
+        <div class="help-step"><span class="help-step-num">2</span><span>Ca. 5 Sekunden warten – das Update wird im Hintergrund heruntergeladen.</span></div>
+        <div class="help-step"><span class="help-step-num">3</span><span>App <strong>vollständig schließen</strong>: von unten nach oben wischen (App-Switcher), die App-Karte nach oben wegwischen.</span></div>
+        <div class="help-step"><span class="help-step-num">4</span><span>App erneut öffnen → neue Version ist jetzt aktiv.</span></div>
 
-        <p><strong>📱 iPhone / iPad – falls noch immer alt:</strong></p>
-        <div class="help-step"><span class="help-step-num">1</span><span><strong>Safari</strong> öffnen (nicht das Home-Symbol!).</span></div>
-        <div class="help-step"><span class="help-step-num">2</span><span>App-URL aufrufen und Seite <strong>hart neu laden</strong>: Reload-Symbol (⟳) gedrückt halten → „Seite neu laden", oder Seite nach unten ziehen.</span></div>
-        <div class="help-step"><span class="help-step-num">3</span><span>Safari schließen, dann App über das Home-Symbol öffnen.</span></div>
+        <p><strong>Schritt 2 – falls noch immer die alte Version erscheint:</strong></p>
+        <div class="help-step"><span class="help-step-num">1</span><span><strong>Safari öffnen</strong> – nicht das Home-Bildschirm-Symbol, sondern die Safari-App!</span></div>
+        <div class="help-step"><span class="help-step-num">2</span><span>Diese URL in Safari eingeben:<br><code>zapfs.github.io/Feuerwehr-Stoppuhr/Leist-Pruef-Uhr.html</code></span></div>
+        <div class="help-step"><span class="help-step-num">3</span><span>Seite hart neu laden: Reload-Symbol (⟳) in der Adressleiste <strong>gedrückt halten</strong> → „Seite neu laden" antippen. Oder: Seite nach unten ziehen (Pull-to-Refresh).</span></div>
+        <div class="help-step"><span class="help-step-num">4</span><span>Safari schließen.</span></div>
+        <div class="help-step"><span class="help-step-num">5</span><span>App nun über das Home-Bildschirm-Symbol öffnen → neue Version erscheint.</span></div>
 
-        <p><strong>📱 iPhone / iPad – letzter Ausweg:</strong></p>
-        <div class="help-step"><span class="help-step-num">1</span><span>Home-Symbol lange drücken → <strong>„Vom Home-Bildschirm entfernen"</strong> (löscht nur das Symbol).</span></div>
-        <div class="help-step"><span class="help-step-num">2</span><span>URL in Safari öffnen, Seite vollständig laden.</span></div>
-        <div class="help-step"><span class="help-step-num">3</span><span>Erneut über <strong>Teilen → „Zum Home-Bildschirm"</strong> installieren.</span></div>
+        <p><strong>Schritt 3 – letzter Ausweg (Neuinstallation):</strong></p>
+        <div class="help-step"><span class="help-step-num">1</span><span>App-Symbol auf dem Home-Bildschirm <strong>lange drücken</strong> → „Lesezeichen löschen" / „Vom Home-Bildschirm entfernen" antippen. (Löscht nur das Symbol, keine Daten.)</span></div>
+        <div class="help-step"><span class="help-step-num">2</span><span>In Safari die URL aufrufen und Seite vollständig laden (Schritt 2 oben).</span></div>
+        <div class="help-step"><span class="help-step-num">3</span><span>Teilen-Symbol (↑) antippen → <strong>„Zum Home-Bildschirm"</strong> → App neu installieren.</span></div>
+      </div>
+    </details>
 
-        <p><strong>🤖 Android (Chrome):</strong></p>
-        <div class="help-step"><span class="help-step-num">1</span><span>App öffnen → Menü (⋮) → <strong>„Seite neu laden"</strong>.</span></div>
-        <div class="help-step"><span class="help-step-num">2</span><span>App schließen und neu öffnen.</span></div>
-        <div class="help-note">Falls das nicht hilft: Android-Einstellungen → Apps → Chrome → Speicher → <strong>Cache leeren</strong>.</div>
+    <details class="help-item">
+      <summary>🔁 Update – Android (Chrome)</summary>
+      <div class="help-content">
+        <div class="help-note">Die App speichert sich im Cache für den Offline-Betrieb. Das Update läuft im Hintergrund – es wird aber erst nach einem vollständigen Neustart aktiv.</div>
 
-        <p><strong>💻 Browser (Desktop):</strong></p>
-        <div class="help-note">Windows/Linux: <strong>Strg + Umschalt + R</strong> &nbsp;|&nbsp; macOS: <strong>Cmd + Umschalt + R</strong></div>
+        <p><strong>Normaler Weg:</strong></p>
+        <div class="help-step"><span class="help-step-num">1</span><span>App öffnen (<strong>Internetverbindung nötig</strong>).</span></div>
+        <div class="help-step"><span class="help-step-num">2</span><span>Menü (⋮ oben rechts) → <strong>„Seite neu laden"</strong> antippen.</span></div>
+        <div class="help-step"><span class="help-step-num">3</span><span>App vollständig schließen und neu öffnen → neue Version ist aktiv.</span></div>
+
+        <p><strong>Falls noch immer alt – Chrome-Cache leeren:</strong></p>
+        <div class="help-step"><span class="help-step-num">1</span><span>Android-<strong>Einstellungen</strong> öffnen.</span></div>
+        <div class="help-step"><span class="help-step-num">2</span><span><strong>Apps</strong> → <strong>Chrome</strong> antippen.</span></div>
+        <div class="help-step"><span class="help-step-num">3</span><span><strong>Speicher</strong> → <strong>Cache leeren</strong>.</span></div>
+        <div class="help-step"><span class="help-step-num">4</span><span>App neu öffnen.</span></div>
+      </div>
+    </details>
+
+    <details class="help-item">
+      <summary>🔁 Update – Browser (Desktop / Laptop)</summary>
+      <div class="help-content">
+        <p>Ein <strong>Hard-Refresh</strong> lädt die Seite am Cache vorbei direkt vom Server:</p>
+        <div class="help-step"><span class="help-step-num">Win</span><span><strong>Strg + Umschalt + R</strong></span></div>
+        <div class="help-step"><span class="help-step-num">Mac</span><span><strong>Cmd + Umschalt + R</strong></span></div>
+        <div class="help-step"><span class="help-step-num">Alt</span><span>Strg + F5 (Windows) oder Seite im Browser-Menü mit gedrückter Umschalt-Taste neu laden.</span></div>
       </div>
     </details>
 

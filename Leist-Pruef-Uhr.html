@@ -585,12 +585,16 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
   inset: 0;
   z-index: 600;
   background: var(--c-bg);
-  display: grid;
-  grid-template-rows: auto 1fr;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 .help-overlay.hidden { display: none; }
 .help-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   background: var(--c-surface);
   border-bottom: 1px solid var(--c-border);
   padding: 14px 16px;
@@ -611,10 +615,6 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
 }
 .btn-help-close:hover { background: var(--c-btn-hover); }
 .help-body {
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: contain;
   padding: 12px;
   display: flex;
   flex-direction: column;

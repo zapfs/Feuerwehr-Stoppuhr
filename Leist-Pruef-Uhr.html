@@ -2902,12 +2902,12 @@ Screens.ergebnis = {
     if (SESSION.gfTestfragen) {
       const gf = r.testfragenGF;
       if (gf == null) missing.push('Testfragen GF');
-      addRow('Testfragen – Gruppenführer', gf != null, gf != null ? `${fmtMS(gf)} (max 10:00)` : '');
+      addRow('Testfragen – Gruppenführer', gf != null);
     }
     for (let i = 0; i < SESSION.stufe6Count; i++) {
       const ma = r.testfragenMembers[i];
       if (ma == null) missing.push(`Testfragen Teilnehmer ${i + 1}`);
-      addRow(`Testfragen – Stufe-6-Teilnehmer ${i + 1}`, ma != null, ma != null ? `${fmtMS(ma)} (max 05:00)` : '');
+      addRow(`Testfragen – Stufe-6-Teilnehmer ${i + 1}`, ma != null);
     }
 
     // Knoten – nur Löscheinsatz
@@ -2915,37 +2915,24 @@ Screens.ergebnis = {
       for (const def of CONFIG.knotenDefs) {
         const el = r.knoten[def.id];
         if (el == null) missing.push(def.label);
-        let detail = '';
-        if (el != null) {
-          detail = `${fmtSec(el)} s (max ${def.max} s)`;
-          if (el > def.max) detail += ' – 2 Fehlerpunkte';
-        }
-        addRow(`${def.label} – ${def.sublabel}`, el != null, detail);
+        addRow(`${def.label} – ${def.sublabel}`, el != null);
       }
     }
 
     // Einsatzübung
     const ea = r.einsatz;
     if (ea == null) missing.push('Einsatzübung');
-    addRow('Einsatzübung', ea != null,
-      ea != null ? `${fmtSec(ea)} s (max ${SESSION.einsatzMax} s)` : '');
+    addRow('Einsatzübung', ea != null);
 
     // Saugleitung & Trockensaugprobe
     if (hasSaug) {
       const sa = r.saugleitung;
       if (sa == null) missing.push('Saugleitung kuppeln');
-      addRow('Saugleitung kuppeln', sa != null,
-        sa != null ? `${fmtSec(sa)} s (max ${SESSION.saugleitungMax} s)` : '');
+      addRow('Saugleitung kuppeln', sa != null);
 
       const ts = r.trockensaug;
       if (ts.mainElapsed == null) missing.push('Trockensaugprobe');
-      let tsDetail = '';
-      if (ts.mainElapsed != null) {
-        tsDetail = `${fmtSec(ts.mainElapsed)} s`;
-        if (ts.versuche > 1) tsDetail += ` · ${ts.versuche} Versuche · 5 Fehlerpunkte`;
-        tsDetail += ts.haltezeitBestanden ? ' · Haltezeit ✓' : ' · Haltezeit nicht bestanden';
-      }
-      addRow('Trockensaugprobe', ts.mainElapsed != null, tsDetail);
+      addRow('Trockensaugprobe', ts.mainElapsed != null);
     }
 
     const gesamt = document.getElementById('erg-gesamt');

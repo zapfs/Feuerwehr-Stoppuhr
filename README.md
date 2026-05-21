@@ -51,7 +51,68 @@ Die App erscheint jetzt als Symbol in der App-Übersicht und läuft im Vollbild 
 
 ### Offline-Nutzung
 
-Nach der ersten Installation (mit Internetverbindung) ist die App **vollständig offline nutzbar**. Updates werden automatisch geladen, sobald das Gerät wieder online ist und die App geöffnet wird.
+Nach der ersten Installation (mit Internetverbindung) ist die App **vollständig offline nutzbar**. Updates werden automatisch im Hintergrund geladen, sobald das Gerät online ist und die App geöffnet wird – es ist aber ein vollständiger Neustart der App nötig, damit das Update aktiv wird.
+
+---
+
+## App aktualisieren
+
+Die App speichert sich selbst im Cache des Geräts, damit sie offline funktioniert. Deshalb reicht ein einfaches Neuladen manchmal nicht aus – besonders auf iOS kann die alte Version hartnäckig im Cache bleiben.
+
+### iPhone / iPad (iOS)
+
+> **Warum erscheint noch die alte Version?**  
+> iOS öffnet die installierte PWA direkt aus dem Cache. Das Update wird zwar im Hintergrund geladen, aber erst nach einem vollständigen Neustart aktiv.
+
+**Normaler Update-Weg (meistens ausreichend):**
+
+1. App über das Home-Bildschirm-Symbol öffnen (Internetverbindung erforderlich).
+2. Kurz warten (ca. 5 Sekunden) – das Update wird im Hintergrund heruntergeladen.
+3. App **vollständig schließen**: Vom unteren Bildschirmrand nach oben wischen (App-Switcher öffnen), die App-Karte wegwischen.
+4. App erneut öffnen → neue Version ist jetzt aktiv.
+
+**Falls die alte Version weiterhin erscheint:**
+
+1. **Safari** öffnen (nicht das Home-Bildschirm-Symbol!).
+2. Die App-URL aufrufen:  
+   `https://zapfs.github.io/Feuerwehr-Stoppuhr/Leist-Pruef-Uhr.html`
+3. Seite hart neu laden: auf das **Reload-Symbol** (⟳) in der Adressleiste tippen und gedrückt halten → **„Seite neu laden"** wählen. Alternativ: Seite nach unten ziehen (Pull-to-Refresh).
+4. Safari schließen.
+5. App nun über das Home-Bildschirm-Symbol öffnen → neue Version erscheint.
+
+**Falls auch das nicht hilft (letzter Ausweg):**
+
+1. App-Symbol auf dem Home-Bildschirm lange drücken → **„Lesezeichen löschen"** / **„Vom Home-Bildschirm entfernen"** (löscht nur das Symbol, keine Daten).
+2. In Safari die URL öffnen, Seite vollständig laden.
+3. Erneut über **Teilen → „Zum Home-Bildschirm"** installieren.
+
+---
+
+### Android (Chrome)
+
+**Normaler Update-Weg:**
+
+1. App öffnen (Internetverbindung erforderlich).
+2. Menü (⋮ oben rechts) → **„Seite neu laden"**.
+3. App schließen und neu öffnen → neue Version ist aktiv.
+
+**Falls die alte Version bleibt:**
+
+1. In Chrome die App-URL direkt aufrufen.
+2. **Hard-Refresh** ausführen: Adressleiste antippen, URL bestätigen – oder Menü (⋮) → **„Seite neu laden"** bei bestehender Verbindung.
+3. Alternativ: Android-Einstellungen → Apps → Chrome → **Speicher → Cache leeren**.
+4. App erneut öffnen.
+
+---
+
+### Browser (Desktop / Laptop)
+
+| System | Tastenkombination |
+|--------|-------------------|
+| Windows / Linux | **Strg + Umschalt + R** |
+| macOS | **Cmd + Umschalt + R** |
+
+Ein Hard-Refresh überspringt den Cache und lädt die aktuelle Version direkt vom Server.
 
 ---
 

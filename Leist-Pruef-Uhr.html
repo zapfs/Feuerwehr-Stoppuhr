@@ -612,7 +612,9 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
 .btn-help-close:hover { background: var(--c-btn-hover); }
 .help-body {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
   padding: 12px;
   display: flex;
